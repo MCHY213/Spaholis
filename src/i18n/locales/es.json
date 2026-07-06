@@ -1,0 +1,640 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Algo salió mal",
+    "retry": "Intentar de nuevo",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "close": "Cerrar",
+    "yes": "Sí",
+    "no": "No",
+    "language": "Idioma",
+    "send": "Enviar",
+    "sending": "Enviando...",
+    "optional": "Opcional",
+    "required": "Obligatorio",
+    "learnMore": "Más información",
+    "viewAll": "Ver todo",
+    "browseAll": "Ver todo",
+    "comingSoon": "Próximamente",
+    "bookNow": "Reservar",
+    "submitting": "Enviando...",
+    "selectDate": "Selecciona una fecha",
+    "people": "personas",
+    "person": "persona"
+  },
+  "nav": {
+    "home": "Inicio",
+    "about": "Nosotros",
+    "treatments": "Tratamientos y Terapias",
+    "classes": "Clases",
+    "retreats": "Retiros",
+    "blog": "Blog",
+    "faqs": "Preguntas Frecuentes",
+    "giftCards": "Tarjetas de Regalo",
+    "book": "Reservar",
+    "myAccount": "Mi Cuenta",
+    "signIn": "Iniciar Sesión",
+    "signOut": "Cerrar Sesión",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "mobileNavigation": "Navegación móvil",
+    "dashboard": "Panel"
+  },
+  "footer": {
+    "rights": "Todos los derechos reservados",
+    "follow": "Síguenos",
+    "contact": "Contacto",
+    "newsletter": "Boletín"
+  },
+  "form": {
+    "name": "Nombre completo",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "email": "Correo electrónico",
+    "yourEmail": "Tu correo electrónico",
+    "phone": "Teléfono",
+    "message": "Mensaje",
+    "notes": "Notas",
+    "submit": "Enviar",
+    "sending": "Enviando...",
+    "required": "Obligatorio",
+    "invalidEmail": "Ingresa un correo válido"
+  },
+  "booking": {
+    "title": "Reservar un servicio",
+    "selectService": "Selecciona un servicio",
+    "selectDate": "Selecciona una fecha",
+    "selectTime": "Selecciona una hora",
+    "guestInfo": "Información del cliente",
+    "summary": "Resumen",
+    "service": "Servicio",
+    "date": "Fecha",
+    "time": "Hora",
+    "duration": "Duración",
+    "total": "Total",
+    "taxIncluded": "impuestos incluidos",
+    "perPerson": "por persona",
+    "guests": "Personas",
+    "proceedToPayment": "Continuar al pago",
+    "confirm": "Confirmar reserva",
+    "confirming": "Confirmando...",
+    "confirmed": "¡Reserva confirmada!",
+    "confirmationMessage": "Recibimos tu solicitud y te contactaremos pronto.",
+    "bookAnother": "Reservar otra",
+    "atClientLocation": "En la ubicación del cliente",
+    "tbd": "Por confirmar",
+    "retreatInquirySubmitted": "¡Solicitud de retiro enviada!",
+    "retreatInquiryFailed": "No se pudo enviar la solicitud",
+    "bookingRequestSubmitted": "¡Solicitud de reserva enviada!",
+    "bookingRequestFailed": "No se pudo enviar la reserva",
+    "paymentBookingFailed": "Pago recibido pero la reserva falló. Contáctanos.",
+    "emailSendFailed": "No se pudo enviar el correo de la reserva",
+    "paymentFailed": "Pago fallido",
+    "couponPlaceholder": "Ingresa el código",
+    "paymentRetry": "Pago fallido. Inténtalo de nuevo.",
+    "classBookedSuccess": "¡Reserva confirmada! Te esperamos.",
+    "classBookFailed": "No se pudo reservar",
+    "classPaymentSuccess": "¡Pago exitoso! Tu reserva está confirmada.",
+    "selectOfferingError": "Selecciona una membresía o paquete para canjear",
+    "signInForOfferingError": "Inicia sesión para usar tu membresía o créditos",
+    "bookedWithMembership": "Reservado con tu membresía.",
+    "bookedWithCredit": "Reservado — 1 crédito usado.",
+    "redeemFailed": "No se pudo canjear el paquete",
+    "experienceBookFailed": "No se pudo reservar. Inténtalo de nuevo.",
+    "booking": "Reservando...",
+    "confirmBooking": "Confirmar reserva",
+    "heading": "Reserva tu experiencia",
+    "headingExperience": "Reservar experiencia",
+    "headingRetreat": "Solicitar programa",
+    "selectAService": "Selecciona un servicio",
+    "selectAServiceSubtitle": "Elige la experiencia que se ajuste a ti",
+    "all": "Todos",
+    "steps": {
+      "service": "Servicio",
+      "dateTime": "Fecha y hora",
+      "intakeForm": "Formulario de salud",
+      "cardAuth": "Autorización de tarjeta",
+      "yourDetails": "Tus datos",
+      "summary": "Revisar",
+      "checkout": "Pago",
+      "payment": "Pago",
+      "confirmation": "Confirmación"
+    },
+    "summary": {
+      "title": "Revisa tu reserva",
+      "subtitle": "Confirma tus datos antes de pagar.",
+      "service": "Servicio",
+      "dateTime": "Fecha y hora",
+      "contact": "Contacto",
+      "intake": "Salud y preferencias",
+      "intakeCompleted": "Formulario de salud completado",
+      "edit": "Editar",
+      "total": "Total"
+    },
+    "categories": {
+      "workshop": "Taller",
+      "Massage Therapy": "Terapia de masaje",
+      "Organic Facials": "Faciales orgánicos",
+      "Body Treatments": "Tratamientos corporales",
+      "Holistic Therapy": "Terapia holística",
+      "Wellness Programs": "Programas de bienestar",
+      "Wellness Retreats": "Retiros de bienestar",
+      "Manuel Antonio Experiences": "Experiencias en Manuel Antonio"
+    },
+    "intakeTitles": {
+      "default": "Formulario de admisión terapéutica",
+      "massage": "Formulario de admisión para masaje",
+      "facial": "Formulario de admisión para facial",
+      "wrap": "Formulario de admisión para envoltura corporal",
+      "holistic": "Formulario de admisión holística"
+    },
+    "intake": {
+      "subtitle": "Completa este formulario para personalizar tu experiencia y asegurar tu bienestar durante la sesión. Toda la información es confidencial.",
+      "allergies": "Alergias",
+      "allergiesPlaceholder": "Ej. látex, nueces, aceites esenciales...",
+      "medications": "Medicamentos o suplementos actuales",
+      "medicationsPlaceholder": "Indica lo que estás tomando actualmente",
+      "healthConditions": "Condiciones de salud",
+      "healthConditionsPlaceholder": "Ej. diabetes, problemas cardíacos, artritis...",
+      "recentSurgeries": "Cirugías recientes (últimos 12 meses)",
+      "recentSurgeriesPlaceholder": "Tipo y fecha de la cirugía",
+      "pregnancy": "Actualmente embarazada o posible embarazo",
+      "bloodPressure": "Presión arterial alta o baja",
+      "skinConditions": "Condiciones de la piel",
+      "skinConditionsPlaceholder": "Ej. eczema, psoriasis, piel sensible...",
+      "emergencyContact": "Contacto de emergencia *",
+      "name": "Nombre *",
+      "namePlaceholder": "Nombre completo",
+      "phone": "Teléfono *",
+      "phonePlaceholder": "+506 8888-8888",
+      "additionalNotes": "Notas adicionales",
+      "additionalNotesPlaceholder": "Algo más que debamos saber...",
+      "couplesNotice": "Esta es una reserva en pareja — por favor completen un formulario por cada huésped para personalizar ambos tratamientos.",
+      "person1": "Huésped 1",
+      "person2": "Huésped 2",
+      "guestNamePlaceholder": "Nombre completo de este huésped"
+    },
+    "cardAuth": {
+      "title": "Autorización de tarjeta",
+      "subtitle": "Necesitamos una tarjeta en archivo para asegurar tu cita. Solo cobraremos en caso de inasistencia o cancelación tardía (menos de 24 horas de aviso).",
+      "cardholder": "Nombre del titular *",
+      "cardholderPlaceholder": "Nombre como aparece en la tarjeta",
+      "cardNumber": "Número de tarjeta *",
+      "expiry": "Vencimiento (MM/AA) *",
+      "cvv": "CVV *",
+      "cardType": "Tipo de tarjeta",
+      "declaration": "Declaración y autorización",
+      "declarationText": "Autorizo a Holis Wellness Center a guardar y usar de forma segura la información de mi tarjeta para asegurar mi cita. Entiendo que mi tarjeta podrá ser cobrada hasta el 100% del costo del servicio en caso de inasistencia o cancelación con menos de 24 horas de aviso. Doy mi consentimiento para que Holis Wellness Center conserve esta información de acuerdo con su política de privacidad y para cualquier cargo relacionado con los servicios prestados.",
+      "authorizeLabel": "Autorizo a Holis Wellness Center a guardar y usar la información de mi tarjeta como se describe arriba *",
+      "signatureLabel": "Reconozco que esto sirve como mi firma electrónica *"
+    },
+    "dateTime": {
+      "title": "Elige fecha y hora",
+      "selectDateFirst": "Selecciona una fecha primero",
+      "checking": "Comprobando disponibilidad…",
+      "noTimes": "No hay horarios disponibles para esta fecha.",
+      "requestVisit": "Solicitar visita en tu ubicación",
+      "noExtraCost": "¡Sin costo adicional — vamos a ti!",
+      "orRequestVisit": "O solicita visita en tu ubicación",
+      "visitSelected": "Visita en tu ubicación seleccionada",
+      "switchBack": "Volver a reserva en el estudio"
+    },
+    "details": {
+      "title": "Tus datos",
+      "titleRetreat": "Cuéntanos sobre ti",
+      "fullName": "Nombre completo *",
+      "fullNamePlaceholder": "María Pérez",
+      "email": "Correo *",
+      "emailPlaceholder": "maria@ejemplo.com",
+      "phone": "Teléfono",
+      "phonePlaceholder": "+506 8888-8888",
+      "address": "Tu dirección *",
+      "addressPlaceholder": "Dirección completa donde debemos llegar",
+      "couponCode": "Código de cupón",
+      "specialRequests": "Solicitudes especiales",
+      "specialRequestsPlaceholder": "Cualquier preferencia o alergia...",
+      "retreatGoals": "Cuéntanos sobre tus objetivos para el retiro",
+      "retreatGoalsPlaceholder": "¿Qué esperas vivir? ¿Restricciones alimentarias o consideraciones de salud?"
+    },
+    "paymentStep": {
+      "title": "Completar pago",
+      "payWithCard": "Pagar con tarjeta"
+    },
+    "confirmationScreen": {
+      "inquirySubmitted": "¡Solicitud enviada!",
+      "requestReceived": "¡Solicitud de reserva recibida!",
+      "appointmentConfirmed": "Cita confirmada",
+      "paymentSuccessful": "Pago exitoso",
+      "paidMessage": "Gracias, {{name}}. Tu pago se procesó con éxito y tu cita está confirmada. Hemos enviado un recibo y la confirmación a {{email}}.",
+      "confirmationNumber": "Confirmación #",
+      "paymentStatus": "Estado del pago",
+      "paymentStatusPaid": "Pagado",
+      "authCode": "Código de autorización",
+      "retreatMessage": "Te contactaremos pronto en {{email}} para conversar sobre tu retiro.",
+      "bookingMessage": "Recibimos tu solicitud y te contactaremos pronto en {{email}} para confirmar la disponibilidad.",
+      "location": "Ubicación",
+      "address": "Dirección",
+      "yourLocation": "Tu ubicación",
+      "studio": "Holis Wellness Center",
+      "meetingLink": "Enlace de la reunión"
+    },
+    "checkout": {
+      "title": "Revisar y pagar",
+      "summaryTitle": "Resumen del pedido",
+      "subtotal": "Subtotal",
+      "discount": "Descuento",
+      "total": "Total",
+      "taxesIncluded": "Impuestos incluidos.",
+      "securePayment": "Pago en línea seguro",
+      "securePaymentSubtitle": "Tu pago se procesa por una conexión cifrada. Los datos de tu tarjeta no se almacenan en este sitio.",
+      "acceptPrefix": "He leído y acepto los",
+      "terms": "Términos y Condiciones",
+      "and": "y la",
+      "privacy": "Política de Privacidad",
+      "mustAccept": "Debes aceptar los Términos y la Política de Privacidad para continuar.",
+      "acceptedAt": "Aceptado el {{time}}",
+      "proceedToPayment": "Proceder al pago seguro",
+      "processing": "Procesando pago…",
+      "processingHint": "Por favor no cierres esta ventana.",
+      "approved": "Pago aprobado",
+      "declined": "Tu pago fue rechazado. Intenta con otra tarjeta.",
+      "declinedTitle": "Pago rechazado",
+      "timeout": "La pasarela de pago tardó demasiado en responder.",
+      "timeoutTitle": "Tiempo de espera agotado",
+      "genericError": "No pudimos procesar tu pago. Inténtalo de nuevo.",
+      "retry": "Reintentar pago",
+      "simulator": "Modo prueba (simulador)"
+    },
+    "summarySidebar": {
+      "title": "Resumen de la reserva",
+      "intakeDone": "Formulario de salud completado ✓",
+      "cardDone": "Tarjeta autorizada ✓",
+      "yourLocation": "Tu ubicación",
+      "studio": "Holis Wellness Center",
+      "paypalRequired": "Pago con tarjeta requerido",
+      "deposit": "Depósito requerido",
+      "sessionsIncluded": "{{count}} sesiones incluidas"
+    },
+    "nav": {
+      "back": "Atrás",
+      "submitting": "Enviando...",
+      "submitInquiry": "Enviar solicitud",
+      "requestBooking": "Solicitar reserva",
+      "continueToCheckout": "Continuar al pago",
+      "continue": "Continuar"
+    },
+    "faqLine": "¿Tienes preguntas antes de reservar?",
+    "readFaqs": "Lee nuestras preguntas frecuentes"
+  },
+  "checkout": {
+    "title": "Pago",
+    "payWithCard": "Pagar con tarjeta",
+    "payInPerson": "Pagar en persona",
+    "secure": "Pago seguro",
+    "currencyNote": "Cobrado en USD",
+    "paymentFailed": "Pago fallido. Inténtalo de nuevo."
+  },
+  "classes": {
+    "title": "Clases",
+    "schedule": "Horario",
+    "instructor": "Instructor",
+    "spotsRemaining": "{{count}} cupos disponibles",
+    "full": "Lleno",
+    "joinClass": "Unirme a la clase",
+    "useCredit": "Usar crédito",
+    "useMembership": "Usar membresía",
+    "purchaseEyebrow": "Comprar",
+    "membershipsTitle": "Membresías y Paquetes de Clases",
+    "membershipsSubtitle": "Ahorra con créditos en paquete o acceso ilimitado. Canjea al reservar — sin pasos extra.",
+    "buyMemberships": "Comprar membresías y paquetes ↓"
+  },
+  "experience": {
+    "perPerson": "por persona",
+    "guests_one": "{{count}} persona",
+    "guests_other": "{{count}} personas"
+  },
+  "faqs": {
+    "title": "Preguntas Frecuentes",
+    "search": "Buscar preguntas...",
+    "noResults": "Ninguna pregunta coincide con tu búsqueda."
+  },
+  "services": {
+    "eyebrow": "Tratamientos y Terapias",
+    "title": "Tratamientos y Terapias",
+    "subtitle": "Nuestros tratamientos de masoterapia están diseñados para aliviar la tensión muscular, reducir el estrés y apoyar el bienestar general. Utilizando técnicas como tejido profundo, sueco y masaje terapéutico, cada sesión se adapta a las necesidades de su cuerpo para mejorar la circulación, aliviar el dolor y promover una relajación profunda.",
+    "selectCategory": "Selecciona una categoría para ver los tratamientos",
+    "taxNote": "Todos los precios incluyen impuestos",
+    "book": "Reservar",
+    "bookExperience": "Reservar experiencia",
+    "bookPackage": "Reservar paquete",
+    "request": "Solicitar",
+    "moreTreatments": "+{{count}} tratamientos más",
+    "categories": {
+      "Massage Therapy": "Terapia de Masajes",
+      "Organic Facials": "Faciales Orgánicos",
+      "Body Treatments": "Tratamientos Corporales",
+      "Holistic Therapy": "Terapia Holística",
+      "Wellness Programs": "Programas de Bienestar",
+      "Manuel Antonio Experiences": "Experiencias en Manuel Antonio",
+      "Spa Packages": "Paquetes de Spa"
+    },
+    "seo": {
+      "intro": {
+        "title": "Tratamientos y Terapias",
+        "body": "En Holis Wellness Center, nuestros tratamientos y terapias están diseñados para apoyar tu bienestar físico, emocional y energético. Ofrecemos una amplia gama de servicios holísticos que incluyen masoterapia, faciales orgánicos, tratamientos corporales y programas de bienestar personalizados. Ya sea que busques alivio del estrés, reducción del dolor o rejuvenecimiento de la piel, nuestros terapeutas expertos adaptan cada experiencia a tus necesidades."
+      },
+      "blocks": {
+        "massage": {
+          "title": "Masoterapia",
+          "body": "Nuestros servicios de masoterapia combinan técnicas tradicionales y modernas para aliviar la tensión muscular, mejorar la circulación y promover una relajación profunda. Elige entre masaje de tejido profundo, sueco y terapéutico, diseñados para reducir el estrés, apoyar la recuperación y mejorar el bienestar general."
+        },
+        "facials": {
+          "title": "Faciales Orgánicos",
+          "body": "Nuestros faciales orgánicos utilizan productos naturales libres de toxinas para nutrir y restaurar tu piel. Estos tratamientos mejoran la hidratación, reducen los signos de envejecimiento y promueven una tez radiante con ingredientes botánicos suaves y efectivos, aptos para todo tipo de piel."
+        },
+        "body": {
+          "title": "Tratamientos Corporales",
+          "body": "Nuestros tratamientos corporales están diseñados para desintoxicar, exfoliar y rejuvenecer la piel. Desde exfoliaciones y envolturas hasta terapias linfáticas, cada sesión mejora la circulación, la textura de la piel y apoya el bienestar de todo el cuerpo."
+        },
+        "holistic": {
+          "title": "Terapia Holística",
+          "body": "Nuestras terapias holísticas se enfocan en equilibrar la mente y el cuerpo mediante técnicas integrativas que apoyan el bienestar emocional, la alineación energética y la relajación profunda. Son ideales para quienes buscan un enfoque más consciente del bienestar."
+        }
+      },
+      "benefits": {
+        "title": "Beneficios de Nuestros Tratamientos",
+        "items": [
+          "Reducir el estrés y la ansiedad",
+          "Aliviar la tensión muscular y el dolor crónico",
+          "Mejorar la circulación y el flujo linfático",
+          "Mejorar la salud y la hidratación de la piel",
+          "Apoyar el bienestar y el equilibrio general"
+        ]
+      },
+      "faq": {
+        "title": "Preguntas Frecuentes",
+        "items": [
+          {
+            "q": "¿Cuál es el mejor masaje para aliviar el estrés?",
+            "a": "El masaje sueco y las terapias holísticas son ideales para reducir el estrés y promover una relajación profunda."
+          },
+          {
+            "q": "¿Con qué frecuencia debo hacerme un facial?",
+            "a": "Para una salud óptima de la piel, recomendamos un facial cada 4 a 6 semanas según tu tipo de piel y objetivos."
+          },
+          {
+            "q": "¿Sus tratamientos son aptos para piel sensible?",
+            "a": "Sí, nuestros faciales orgánicos y terapias personalizadas están diseñados para ser seguros y efectivos en piel sensible."
+          }
+        ]
+      },
+      "local": {
+        "title": "Centro de Bienestar en Manuel Antonio, Costa Rica",
+        "body": "Ubicado en Manuel Antonio, Costa Rica, Holis Wellness Center es un destino de confianza para masoterapia, faciales orgánicos y tratamientos holísticos de bienestar. Atendemos con orgullo a quienes buscan relajación, rejuvenecimiento y atención personalizada en un ambiente cálido y acogedor."
+      }
+    }
+  },
+  "blog": {
+    "metaTitle": "Blog de Bienestar | Holis Wellness Center",
+    "metaDescription": "Lee artículos sobre bienestar, mindfulness, yoga, breathwork, retiros y terapia holística de Holis Wellness Center.",
+    "brand": "Holis Wellness Center",
+    "title": "Blog",
+    "intro": "Explora artículos de Holis Wellness Center sobre mindfulness, yoga, breathwork, sanación holística y experiencias restaurativas en Manuel Antonio, Costa Rica.",
+    "loading": "Cargando artículos...",
+    "empty": "Aún no hay artículos. ¡Vuelve pronto!",
+    "readMore": "Leer más",
+    "backToBlog": "Volver al blog",
+    "gallery": "Galería"
+  },
+  "retreats": {
+    "personalize": "Personaliza tu retiro",
+    "inquiryReceived": "¡Solicitud recibida!",
+    "bookThisRetreat": "Reservar este retiro",
+    "concierge": "Completa el formulario y nuestro Concierge de Retiros te contactará.",
+    "fillRequired": "Por favor completa todos los campos obligatorios",
+    "inquiryFailed": "No se pudo enviar la solicitud",
+    "inquirySubmitted": "¡Solicitud enviada! Nuestro equipo te contactará pronto.",
+    "conciergeFollowup": "Nuestro Concierge de Retiros te contactará lo antes posible para ayudarte a crear un plan de retiro personalizado.",
+    "numberOfGuests": "Número de personas",
+    "preferredStartDate": "Fecha de inicio preferida",
+    "occupancy": "Ocupación",
+    "occupancyType": "Tipo de ocupación",
+    "single": "Sencilla",
+    "double": "Doble",
+    "triple": "Triple",
+    "withAccommodation": "Con alojamiento",
+    "withoutAccommodation": "Sin alojamiento",
+    "noAccomNote": "El alojamiento y el desayuno no están incluidos en estas tarifas.",
+    "includeAccommodation": "Incluir alojamiento (Hotel Boutique ECOTICA)",
+    "preferences": "Preferencias o solicitudes especiales",
+    "preferencesPlaceholder": "Requisitos dietéticos, accesibilidad, actividades de interés...",
+    "submitInquiry": "Enviar solicitud de retiro",
+    "depositNote": "Se requerirá un depósito del 40% para confirmar tu reserva.",
+    "notFound": "Retiro no encontrado",
+    "viewAll": "Ver todos los retiros",
+    "back": "← Volver a retiros",
+    "days": "Días",
+    "tabs": {
+      "overview": "Resumen",
+      "itinerary": "Itinerario",
+      "pricing": "Precios"
+    },
+    "whatsIncluded": "Qué incluye",
+    "sampleItinerary": "Itinerario de muestra",
+    "pricing": "Precios",
+    "bookingPolicies": "Políticas de reserva"
+  },
+  "wellness": {
+    "buildExperience": "Diseña mi experiencia",
+    "notSureWhereToStart": "¿No sabes por dónde empezar?",
+    "browseAllServices": "Ver todos los servicios"
+  },
+  "giftCards": {
+    "code": "Código de tarjeta de regalo",
+    "purchased": "¡Tarjeta de regalo comprada!",
+    "purchaseFailed": "No se pudo crear la tarjeta de regalo",
+    "customAmount": "Monto personalizado ($ USD)",
+    "customAmountPlaceholder": "ej. 30000",
+    "yourEmail": "Tu correo electrónico",
+    "yourEmailPlaceholder": "tu@correo.com",
+    "recipientName": "Nombre del destinatario",
+    "recipientEmail": "Correo del destinatario",
+    "recipientEmailPlaceholder": "su@correo.com",
+    "recipientNamePlaceholder": "Su nombre",
+    "personalMessage": "Mensaje personal",
+    "personalMessagePlaceholder": "Un mensaje especial para el destinatario...",
+    "buyNow": "Comprar tarjeta de regalo",
+    "label": "Tarjeta de Regalo",
+    "for": "Para",
+    "amount": "Monto",
+    "selectPrompt": "Selecciona un monto e ingresa tu correo para continuar",
+    "copySent": "Se enviará una copia a {{email}}",
+    "paymentFailed": "Pago fallido"
+  },
+  "giftCard": {
+    "title": "Regala bienestar",
+    "subtitle": "Obsequia una experiencia transformadora"
+  },
+  "auth": {
+    "signIn": "Iniciar Sesión",
+    "signUp": "Crear cuenta",
+    "signOut": "Cerrar Sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "resetPassword": "Restablecer contraseña"
+  },
+  "education": {
+    "sasHeading": "Somato Awareness System™",
+    "sasSubheading": "Formación profesional en masaje terapéutico consciente",
+    "createdBy": "Creado por Evelina Bolognini",
+    "sasIntro1": "El Somato Awareness System™ (SAS) es un método avanzado de formación que integra la conciencia somática, la anatomía holística y el masaje terapéutico en un enfoque de tratamiento poderoso e inteligente.",
+    "sasIntro2": "Más que aprender técnicas, los terapeutas aprenden a comprender el cuerpo, evaluar a cada cliente y diseñar tratamientos personalizados.",
+    "sasIntro3": "El sistema transforma el masaje en un diálogo terapéutico preciso entre el terapeuta y el cuerpo, generando resultados más profundos y duraderos.",
+    "sasIntro4": "El programa está estructurado en tres niveles progresivos, guiando a los terapeutas desde la conciencia fundacional hasta la maestría terapéutica avanzada.",
+    "eachLevel": "Cada nivel incluye:",
+    "hoursDirect": "• 48 horas de formación directa con la facilitadora",
+    "hoursPractice": "• 12 horas de práctica supervisada e independiente",
+    "totalLevel": "Total por nivel: 60 horas",
+    "practiceNote": "Se requiere un período mínimo de práctica de una semana entre visitas formativas.",
+    "whatLearn": "Lo que aprenderás",
+    "whatPractice": "Lo que practicarás",
+    "result": "Resultado",
+    "enrollNow": "Inscribirme",
+    "enrollIn": "Inscribirme en {{title}}",
+    "program": "Programa",
+    "sessions": "Sesiones",
+    "total": "Total",
+    "fullName": "Nombre completo",
+    "enrollmentSuccess": "¡Inscripción exitosa!",
+    "enrollmentFailed": "Error al inscribir",
+    "couplesHeading": "Experiencia de pareja y conexión",
+    "couplesIntro": "Nuestros talleres exploran el toque terapéutico y técnicas de masaje en pareja, prácticas de autocuidado, fundamentos de aromaterapia y métodos de relajación consciente que apoyan el bienestar físico, el equilibrio emocional y la conexión significativa.",
+    "sasLevels": {
+      "level1": {
+        "title": "Somato Awareness System Nivel 1",
+        "subtitle": "Fundamentos de la conciencia somática",
+        "intro": "El Nivel 1 de SAS establece los fundamentos esenciales del Somato Awareness System™. Los participantes desarrollan conciencia corporal, hábitos de trabajo ergonómicos y comprensión del sistema de tejido conectivo del cuerpo. Los terapeutas comienzan a aprender a escuchar el cuerpo a través del tacto y a reconocer cómo los tejidos se adaptan y responden.",
+        "learn1": "Autocuidado del terapeuta y acondicionamiento corporal",
+        "learn2": "Trabajo en camilla ergonómico y biodinámico",
+        "learn3": "Fundamentos de la fascia y el tejido conectivo",
+        "learn4": "Introducción a la anatomía holística",
+        "learn5": "Desarrollo del toque terapéutico consciente",
+        "practice1": "Desarrolla rutinas diarias de autocuidado, incluyendo automasaje, movimiento consciente y prácticas respiratorias.",
+        "practice2": "Aprende postura eficiente y biomecánica para un trabajo en camilla seguro y sostenible.",
+        "practice3": "Explora la red de tejido conectivo y su rol en el equilibrio estructural.",
+        "practice4": "Practica técnicas de masaje que cultivan la conciencia somática y la intención terapéutica.",
+        "result": "Al finalizar SAS 1, los terapeutas trabajan con mayor conciencia corporal, mejor ergonomía y una comprensión más profunda del tejido conectivo."
+      },
+      "level2": {
+        "title": "Somato Awareness System Nivel 2",
+        "subtitle": "Evaluación y tratamiento personalizado",
+        "intro": "El Nivel 2 de SAS introduce el testaje kinesiológico y la integración miofascial, permitiendo a los terapeutas desarrollar tratamientos más precisos y personalizados. Los terapeutas aprenden a leer las respuestas del cuerpo, identificar patrones funcionales y adaptar los tratamientos en tiempo real.",
+        "learn1": "Testaje kinesiológico no muscular (reflejo del brazo MRT)",
+        "learn2": "Segmentos corporales de Wilhelm Reich",
+        "learn3": "Líneas miofasciales y conexiones estructurales",
+        "learn4": "Integración de aromaterapia terapéutica",
+        "learn5": "Evaluación del tratamiento y seguimiento del progreso",
+        "practice1": "Aprende a realizar testaje kinesiológico para guiar las decisiones del tratamiento.",
+        "practice2": "Identifica patrones de tensión dentro de los segmentos corporales.",
+        "practice3": "Trabaja a lo largo de las líneas miofasciales para integrar áreas distantes del cuerpo.",
+        "practice4": "Aplica la aromaterapia como herramienta de apoyo terapéutico.",
+        "result": "Al finalizar SAS 2, los terapeutas pueden evaluar el cuerpo con mayor precisión y diseñar tratamientos adaptados a las necesidades de cada cliente."
+      },
+      "level3": {
+        "title": "Somato Awareness System Nivel 3",
+        "subtitle": "Integración avanzada y maestría terapéutica",
+        "intro": "El Nivel 3 de SAS integra todos los elementos del sistema en un enfoque terapéutico completo y avanzado. Los terapeutas aprenden a combinar la anatomía holística, la conciencia del sistema nervioso y técnicas manuales para crear tratamientos altamente efectivos.",
+        "learn1": "Relaciones embriológicas dentro del cuerpo",
+        "learn2": "Liberación transversal de tejidos (diafragmas)",
+        "learn3": "El principio de la biotensegridad",
+        "learn4": "Introducción a la teoría polivagal",
+        "learn5": "Relaciones anatómicas craneosacrales",
+        "practice1": "Aplica técnicas avanzadas de liberación de tejidos a lo largo de las vías miofasciales.",
+        "practice2": "Trabaja con los diafragmas y planos estructurales del cuerpo.",
+        "practice3": "Integra la conciencia del sistema nervioso en el toque terapéutico.",
+        "practice4": "Diseña y realiza una sesión completa de tratamiento del Somato Awareness System™.",
+        "result": "Al finalizar SAS 3, los terapeutas pueden ofrecer un tratamiento terapéutico SAS completo, combinando evaluación, testaje y trabajo manual avanzado. Los participantes reciben el Certificado de Formación del Somato Awareness System™ tras completar exitosamente."
+      }
+    }
+  },
+  "privateSessions": {
+    "pricing": {
+      "1person": "1 persona",
+      "2people": "2 personas",
+      "upTo4": "Hasta 4",
+      "extraPerson": "Persona extra"
+    },
+    "participants": "Participantes",
+    "personOnly": "Solo {{count}} persona",
+    "peopleOnly": "Solo {{count}} personas",
+    "decrease": "Disminuir",
+    "increase": "Aumentar",
+    "whyChoose": "Por qué elegir sesiones privadas",
+    "benefits": {
+      "personalized": "Atención personalizada",
+      "faster": "Progreso más rápido",
+      "custom": "Programas a medida",
+      "flexible": "Horarios flexibles"
+    },
+    "ctaTitle": "¿Listo para comenzar tu camino personalizado?",
+    "ctaButton": "Reservar una clase privada",
+    "classes": {
+      "oneOnOne": {
+        "title": "Clase privada uno a uno",
+        "description": "Una sesión totalmente personalizada adaptada a tu cuerpo, objetivos y ritmo."
+      },
+      "couples": {
+        "title": "Clase privada en pareja",
+        "description": "Comparte una experiencia de movimiento consciente con tu pareja en un entorno privado."
+      },
+      "group": {
+        "title": "Clase privada grupal",
+        "description": "Trae a tu grupo para una sesión diseñada en torno a sus necesidades colectivas."
+      },
+      "gyrotonic": {
+        "title": "Sistema de Expansión GYROTONIC®",
+        "description": "Movimientos fluidos y en espiral con equipos especializados para aumentar la movilidad y fuerza de la columna."
+      }
+    }
+  },
+  "signatureTreatments": {
+    "comingSoon": "Próximamente",
+    "bookNow": "Reservar"
+  },
+  "indexPage": {
+    "book": "Reservar",
+    "reviewsSuffix": "reseñas"
+  },
+  "consultation": {
+    "title": "Consulta Holística Gratuita",
+    "subtitle": "Cuéntanos un poco sobre ti y te contactaremos para agendar tu sesión gratuita.",
+    "name": "Nombre",
+    "namePlaceholder": "Tu nombre completo",
+    "email": "Correo",
+    "emailPlaceholder": "tu@correo.com",
+    "phone": "Teléfono",
+    "phoneRecommended": "(recomendado)",
+    "phonePlaceholder": "+506 0000 0000",
+    "preferredFormat": "Formato preferido",
+    "formatCall": "Llamada",
+    "formatInPerson": "Presencial",
+    "formatPhoneCall": "Llamada telefónica",
+    "submit": "Solicitar mi sesión",
+    "submitting": "Enviando…",
+    "thankYou": "Gracias",
+    "thankYouMessage": "Te contactaremos en breve para agendar tu consulta holística gratuita.",
+    "confirmSoon": "Nos pondremos en contacto personalmente para confirmar tu horario.",
+    "errorMissingFields": "Por favor ingresa tu nombre y correo electrónico.",
+    "errorInvalidEmail": "Por favor ingresa un correo electrónico válido.",
+    "errorGeneric": "Algo salió mal. Inténtalo de nuevo.",
+    "serviceName": "Consulta Holística Gratuita"
+  }
+}

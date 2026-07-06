@@ -1,0 +1,1 @@
+ALTER TABLE public.class_bookings ADD COLUMN IF NOT EXISTS notification_sent_at timestamptz;

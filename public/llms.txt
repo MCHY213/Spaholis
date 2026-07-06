@@ -1,0 +1,24 @@
+# Holis Wellness Center
+
+> Holistic spa, yoga, breathwork, wellness experiences and retreats in Manuel Antonio, Costa Rica.
+
+Holis Wellness Center offers massage and bodywork therapies, organic facials, daily yoga and movement classes, private sessions, educational courses, gift cards, and immersive wellness retreats and signature experiences.
+
+## Pages
+
+- [Home](/): Overview of Holis Wellness Center.
+- [About](/about): Our story, philosophy, and team.
+- [Treatments & Therapies](/treatments-therapies): Massage, bodywork and holistic therapy menu.
+- [Signature Treatments](/signature-treatments): Curated signature experiences.
+- [Classes & Events](/classes): Daily yoga, movement and workshop schedule.
+- [Class Schedule](/classes/schedule): Weekly calendar of classes.
+- [Private Sessions](/private-sessions): One-on-one and small-group private bookings.
+- [Education & Courses](/education): Somato Awareness System and other trainings.
+- [Retreats & Experiences](/retreats): Multi-day retreats, packages and single-day experiences.
+- [Book a Treatment](/book): Booking flow for treatments and experiences.
+- [Gift Cards](/gift-cards): Purchase gift cards.
+- [FAQs](/faqs): Frequently asked questions.
+
+## Optional
+
+- [Spanish site](/es): Full site in Spanish.

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_payment_id_unique_success ON public.bookings (payment_id) WHERE status NOT IN ('payment_failed', 'cancelled') AND payment_id IS NOT NULL;

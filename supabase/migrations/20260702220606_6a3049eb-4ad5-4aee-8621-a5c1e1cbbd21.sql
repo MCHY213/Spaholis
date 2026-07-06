@@ -1,0 +1,1 @@
+UPDATE public.classes SET image_url = '/__l5e/assets-v1/df957eff-2185-4d8e-981d-f25f858ed83b/class-holis-blue.png';

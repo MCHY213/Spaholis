@@ -1,0 +1,1 @@
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS restricted_package_ids uuid[];

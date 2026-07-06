@@ -1,0 +1,1 @@
+UPDATE public.services SET image_url = 'https://cokcohkzikukmsfyclwn.supabase.co/storage/v1/object/public/service-images/share-the-moment.jpeg' WHERE id = 'd7146894-6875-4193-a1c0-d17f020b2279';

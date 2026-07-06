@@ -1,0 +1,28 @@
+project_id = "cokcohkzikukmsfyclwn"
+
+[functions.finalize-booking]
+verify_jwt = false
+
+[functions.bac-webhook]
+verify_jwt = false
+
+[functions.reconcile-pending-bookings]
+verify_jwt = false
+
+[functions.retry-booking-payment]
+verify_jwt = false
+
+[functions.process-email-queue]
+verify_jwt = true
+
+[functions.send-transactional-email]
+verify_jwt = true
+
+[functions.preview-transactional-email]
+verify_jwt = false
+
+[functions.handle-email-unsubscribe]
+verify_jwt = false
+
+[functions.handle-email-suppression]
+verify_jwt = false
