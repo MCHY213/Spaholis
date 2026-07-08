@@ -136,10 +136,11 @@ export function Navbar() {
             role="dialog"
             aria-modal="true"
             aria-label={t("nav.mobileNavigation", { defaultValue: "Mobile navigation" })}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-background border-b border-border overflow-hidden"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="lg:hidden bg-background border-b border-border max-h-[85vh] overflow-y-auto"
           >
             <nav aria-label={t("nav.mobileNavigation", { defaultValue: "Mobile" })} className="px-4 py-4">
               <ul className="space-y-3">
