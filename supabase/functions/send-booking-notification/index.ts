@@ -182,15 +182,16 @@ function buildIntakeHtml(intake: any): string {
 }
 
 async function sendEmail(to: string, subject: string, html: string): Promise<{ ok: boolean; error?: string }> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-  const PROJECT_ID = SUPABASE_URL?.match(/\/\/([^.]+)/)?.[1] || "";
-  if (!LOVABLE_API_KEY || !PROJECT_ID) return { ok: false, error: "email_config_missing" };
+  // Email is sent via Resend (independent of Lovable). Requires the
+  // RESEND_API_KEY Supabase secret and the sending domain (spaholis.com)
+  // verified in Resend so FROM_ADDRESS is accepted.
+  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+  if (!RESEND_API_KEY) return { ok: false, error: "email_config_missing" };
 
-  const res = await fetch(`https://api.lovable.dev/api/v1/emails/${PROJECT_ID}`, {
+  const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
-    body: JSON.stringify({ to, subject, html, from: FROM_ADDRESS }),
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
+    body: JSON.stringify({ from: FROM_ADDRESS, to, subject, html }),
   });
   if (!res.ok) return { ok: false, error: await res.text() };
   return { ok: true };
