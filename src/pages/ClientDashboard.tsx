@@ -4,9 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { Calendar, Clock, User, Settings, RotateCcw, X, Gift, Bell } from "lucide-react";
+import { Calendar, Clock, User, Settings, RotateCcw, X, Gift, Bell, ShieldCheck, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { isAdminEmail } from "@/lib/adminEmails";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -74,6 +75,24 @@ const ClientDashboard = () => {
           <h1 className="spa-heading-lg text-foreground">Welcome back, {profile?.full_name?.split(" ")[0] || "Guest"}</h1>
           <p className="spa-body mt-2">Manage your bookings and rewards.</p>
         </div>
+
+        {/* Admin Panel shortcut — only shown to admin accounts (see src/lib/adminEmails.ts).
+            The /admin route still enforces the real role check server-side. */}
+        {isAdminEmail(user?.email) && (
+          <Link
+            to="/admin"
+            className="mb-8 flex items-center gap-4 bg-spa-sage/10 border border-spa-sage/30 rounded-2xl p-5 hover:bg-spa-sage/15 transition-colors"
+          >
+            <div className="h-11 w-11 rounded-xl bg-spa-sage/20 flex items-center justify-center shrink-0">
+              <ShieldCheck className="h-5 w-5 text-spa-sage" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-heading text-base font-medium text-foreground">Admin Panel</h3>
+              <p className="font-body text-xs text-muted-foreground mt-0.5">Manage bookings, services, and business settings</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </Link>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-10">
