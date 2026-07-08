@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Calendar, Briefcase, Users, UserCircle, Settings, Menu, X,
-  TrendingUp, Gift, Tag, CalendarDays, GraduationCap, CreditCard, ShieldAlert, DoorOpen, FileEdit, Heart, Package, Sparkles, BookOpen, Image, HelpCircle, Link2, Clock,
+  TrendingUp, Gift, Tag, CalendarDays, GraduationCap, CreditCard, ShieldAlert, DoorOpen, FileEdit, Heart, Package, Sparkles, BookOpen, Image, HelpCircle, Link2, Clock, ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -157,6 +157,9 @@ const AdminDashboard = () => {
         <header className="h-16 border-b border-border flex items-center px-4 sm:px-6 gap-4">
           <button className="lg:hidden" onClick={() => setSidebarOpen(true)}><Menu className="h-5 w-5" /></button>
           <h2 className="font-heading text-lg font-medium text-foreground capitalize">{activeTab}</h2>
+          <Button variant="ghost" size="sm" className="ml-auto shrink-0" onClick={() => navigate("/")}>
+            <ArrowLeft className="h-4 w-4 mr-1.5" /> Back to site
+          </Button>
         </header>
         <div className="p-4 sm:p-6 lg:p-8">
           {activeTab === "overview" && <OverviewView />}
