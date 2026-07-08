@@ -98,6 +98,7 @@ export const content = {
     subtitle: "Every experience is designed around you — your body, your energy, your moment.",
     primaryCta: { text: "Book Your Free Consultation", link: "/book?service=consultation" },
     secondaryCta: { text: "Explore Treatments", link: "/treatments-therapies" },
+    tertiaryCta: { text: "Explore Classes", link: "/classes" },
     backgroundImage: "https://images.squarespace-cdn.com/content/v1/65e538a41cdc651ab18c95d3/1710017291666-GUTIMLDB1FIWKSMM99RF/spa-home.jpg",
     backgroundAlt: "Holis Wellness Center",
   },

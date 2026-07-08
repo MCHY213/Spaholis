@@ -59,21 +59,26 @@ const Index = () => {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="max-w-xl text-center"
+            className="max-w-2xl text-center"
           >
-            <h1 className="spa-heading-xl text-spa-cream mb-6">
+            <h1 className="spa-heading-xl text-spa-cream mb-6 max-w-xl mx-auto">
               {hero.title}
             </h1>
-            <p className="font-body text-spa-cream/75 text-lg mb-10 leading-relaxed">
+            <p className="font-body text-spa-cream/75 text-lg mb-10 leading-relaxed max-w-xl mx-auto">
               {hero.subtitle}
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4 justify-center">
               <Button variant="spa" size="xl" asChild>
                 <Link to={hero.primaryCta.link}>{hero.primaryCta.text}</Link>
               </Button>
               <Button variant="ghost" size="xl" className="text-spa-cream hover:text-spa-cream hover:bg-spa-cream/10 border border-spa-cream/30" asChild>
                 <Link to={hero.secondaryCta.link}>{hero.secondaryCta.text}</Link>
               </Button>
+              {hero.tertiaryCta && (
+                <Button variant="ghost" size="xl" className="text-spa-cream hover:text-spa-cream hover:bg-spa-cream/10 border border-spa-cream/30" asChild>
+                  <Link to={hero.tertiaryCta.link}>{hero.tertiaryCta.text}</Link>
+                </Button>
+              )}
             </div>
           </motion.div>
         </div>
