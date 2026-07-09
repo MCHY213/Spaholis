@@ -1,4 +1,4 @@
-project_id = "cokcohkzikukmsfyclwn"
+project_id = "zhdqjtgtolnksiaepxbd"
 
 [functions.finalize-booking]
 verify_jwt = false
