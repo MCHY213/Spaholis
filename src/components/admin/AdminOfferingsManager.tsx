@@ -39,6 +39,7 @@ const empty = (): Partial<Offering> => ({
   is_unlimited: false,
   status: "active",
   sort_order: 0,
+  payment_link: "",
 });
 
 export function AdminOfferingsManager() {
@@ -79,6 +80,7 @@ export function AdminOfferingsManager() {
       is_unlimited: editing.type === "membership" ? !!editing.is_unlimited : false,
       status: editing.status || "active",
       sort_order: Number(editing.sort_order ?? 0),
+      payment_link: editing.payment_link?.trim() || null,
     };
 
     let offeringId = editing.id as string | undefined;
@@ -131,7 +133,7 @@ export function AdminOfferingsManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-heading text-lg font-medium text-foreground">Offerings</h3>
+          <h3 className="font-heading text-lg font-medium text-foreground">Memberships</h3>
           <p className="font-body text-sm text-muted-foreground">Purchasable items only — memberships, class passes, and drop-ins. Not bookable as appointments.</p>
         </div>
         <Button onClick={() => openEditor(empty())}>
@@ -183,6 +185,9 @@ export function AdminOfferingsManager() {
                         <td className="px-5 py-4 font-body text-sm font-medium text-foreground">
                           <div>{o.name}</div>
                           {o.description && <div className="text-xs text-muted-foreground line-clamp-1">{o.description}</div>}
+                          {o.status === "active" && !o.payment_link && (
+                            <div className="text-xs text-amber-600 mt-0.5">⚠ No CompraClick link — Buy now uses “contact us”</div>
+                          )}
                         </td>
                         <td className="px-5 py-4"><Badge variant="secondary">{TYPE_LABEL[o.type]}</Badge></td>
                         <td className="px-5 py-4 font-body text-sm text-foreground">{formatCRC(o.price)}</td>
@@ -255,6 +260,21 @@ export function AdminOfferingsManager() {
                   <Input type="number" step="1" min="0" value={editing.price ?? 0} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} />
                   <p className="text-xs text-muted-foreground mt-1 font-body">{formatUsdRef(editing.price)} (reference only)</p>
                 </div>
+              </div>
+
+              <div>
+                <label className="font-body text-sm font-medium mb-1.5 block">CompraClick payment link</label>
+                <Input
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://checkout.baccredomatic.com/..."
+                  value={editing.payment_link ?? ""}
+                  onChange={(e) => setEditing({ ...editing, payment_link: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground mt-1 font-body">
+                  Paste the BAC CompraClick link that charges this exact price. The customer's <strong>Buy now</strong> button opens it.
+                  If you change the price, generate a new link for the new amount and paste it here. Leave blank to fall back to the “contact us” prompt.
+                </p>
               </div>
 
               {editing.type === "class_pass" && (

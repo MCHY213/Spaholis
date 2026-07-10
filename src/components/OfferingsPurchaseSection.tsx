@@ -113,11 +113,12 @@ export function OfferingsPurchaseSection({ defaultTab = "all", redirectAfterPurc
   const dropIns = offerings.filter((o) => o.type === "drop_in");
 
   const handleBuy = (o: Offering) => {
-    if (!user) {
-      toast.info("Please sign in to purchase.");
-      navigate(`/auth?redirect=/classes`);
+    if (o.payment_link) {
+      // Send the customer straight to this offering's BAC CompraClick link.
+      window.open(o.payment_link, "_blank", "noopener,noreferrer");
       return;
     }
+    // No CompraClick link set yet — fall back to the contact-to-pay prompt.
     setSelected(o);
   };
 
@@ -217,7 +218,7 @@ export function OfferingsPurchaseSection({ defaultTab = "all", redirectAfterPurc
               immediately in your account.
             </DialogDescription>
           </DialogHeader>
-          {selected && user && (
+          {selected && (
             <div className="space-y-4">
               <ContactToPayNotice
                 serviceTitle={selected.name}

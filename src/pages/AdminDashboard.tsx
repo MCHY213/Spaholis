@@ -65,7 +65,7 @@ const sidebarLinks = [
   { label: "Blog", icon: BookOpen, id: "blog" },
   { label: "FAQs", icon: HelpCircle, id: "faqs" },
   { label: "Products", icon: Package, id: "products" },
-  { label: "Offerings", icon: CreditCard, id: "offerings" },
+  { label: "Memberships", icon: CreditCard, id: "offerings" },
   { label: "Tags", icon: Tag, id: "tags" },
   { label: "Media Library", icon: Image, id: "media" },
   { label: "Content", icon: FileEdit, id: "content" },

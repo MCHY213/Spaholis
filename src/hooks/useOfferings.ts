@@ -20,6 +20,7 @@ export interface Offering {
   is_unlimited: boolean;
   status: "active" | "inactive";
   sort_order: number;
+  payment_link: string | null;
 }
 
 export interface UserOffering {
