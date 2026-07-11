@@ -13,6 +13,8 @@ import { toast } from "sonner";
 
 type PendingContext = {
   bookingId?: string;
+  // "class" routes finalization at class_bookings; absent/other = treatment.
+  type?: "treatment" | "class";
   serviceTitle?: string;
   guestName?: string;
   guestEmail?: string;
@@ -72,11 +74,14 @@ const BookingReturn = () => {
           if (v) rawParams[k] = v;
         });
 
+        // Route to the class-specific finalizer for class bookings; treatments
+        // keep using the untouched finalize-booking function.
+        const finalizeFn = pending.type === "class" ? "finalize-class-booking" : "finalize-booking";
         const result = await invokeEdgeFunction<{
           ok?: boolean;
           reason?: string;
           status?: "paid" | "failed" | "already_paid" | "already_failed";
-        }>("finalize-booking", {
+        }>(finalizeFn, {
           body: {
             bookingId: pending.bookingId,
             guestEmail: pending.guestEmail,
@@ -228,7 +233,10 @@ const BookingReturn = () => {
     !processing &&
     (finalStatus === "failed" || finalStatus === "invalid") &&
     !!pending.bookingId &&
-    !!pending.guestEmail;
+    !!pending.guestEmail &&
+    // retry-booking-payment only knows about treatment bookings; class card
+    // payments just start a fresh booking instead.
+    pending.type !== "class";
 
   // Human-friendly copy for the specific reason returned by finalize-booking.
   const invalidReasonCopy: Record<string, string> = {

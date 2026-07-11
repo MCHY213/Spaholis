@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { ContactToPayNotice } from "@/components/booking/ContactToPayNotice";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { Check, ChevronLeft, CreditCard, CalendarDays, Clock, MapPin, Users, Ticket, Infinity as InfinityIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatSpaDateLong, formatSpaTime } from "@/lib/businessHours";
@@ -150,14 +150,72 @@ const ClassBookingPage = () => {
     }
   };
 
-  const handlePaymentSuccess = async (paymentId: string) => {
+  // Card checkout: create the booking SERVER-SIDE (price recomputed there), then
+  // either confirm immediately (100% coupon) or redirect to BAC CompraClick.
+  // Confirmation of a real payment happens back on /booking/return via the
+  // finalize-booking edge function — never trust the browser to mark it paid.
+  const handleCardCheckout = async () => {
+    if (!scheduleId || !cls) return;
+    setSubmitting(true);
     try {
-      await createClassBooking({ paymentStatus: "paid", paymentMethod: "card" });
-      toast.success(t("booking.classPaymentSuccess"));
+      const result = await invokeEdgeFunction<{
+        ok?: boolean;
+        reason?: string;
+        message?: string;
+        bookingId?: string;
+        needsPayment?: boolean;
+        bacLink?: string;
+        amount?: number;
+      }>("create-class-booking", {
+        body: {
+          schedule_id: scheduleId,
+          guest_name: formData.name,
+          guest_email: formData.email,
+          coupon_code: appliedCoupon?.code ?? null,
+        },
+      });
+
+      if (!result.ok || !result.data || result.data.ok === false) {
+        const reason = result.data?.reason;
+        const msg =
+          reason === "class_full" ? "This class just filled up."
+          : reason === "invalid_coupon" ? (result.data?.message || "That coupon is not valid for this class.")
+          : reason === "no_payment_link" ? "Card payment is temporarily unavailable. Please contact us."
+          : (result.data?.message || t("booking.classBookFailed"));
+        toast.error(msg);
+        return;
+      }
+
+      const data = result.data;
+      if (data.needsPayment && data.bacLink && data.bookingId) {
+        // Persist context so /booking/return can validate this class payment.
+        try {
+          sessionStorage.setItem(
+            "holis:pending_booking",
+            JSON.stringify({
+              bookingId: data.bookingId,
+              type: "class",
+              serviceTitle: cls.title,
+              guestName: formData.name,
+              guestEmail: formData.email,
+              amount: data.amount,
+              returnedAt: null,
+            }),
+          );
+        } catch { /* sessionStorage unavailable — return page will show "no_session" */ }
+        toast.success(`Redirecting to secure payment ($${data.amount})…`);
+        window.location.href = data.bacLink;
+        return;
+      }
+
+      // total was $0 (100% coupon): server already confirmed + emailed.
+      toast.success(t("booking.classBookedSuccess"));
       setBookingComplete(true);
       setStep(steps.length - 1);
     } catch (err: any) {
-      toast.error(err.message || t("booking.paymentBookingFailed"));
+      toast.error(err.message || t("booking.classBookFailed"));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -441,10 +499,18 @@ const ClassBookingPage = () => {
                       </div>
 
                       {payMethod === "card" ? (
-                        <ContactToPayNotice
-                          serviceTitle={cls.title}
-                          amount={Math.max(0, Number(cls.price) - (appliedCoupon?.discount ?? 0))}
-                        />
+                        (() => {
+                          const cardTotal = Math.max(0, Number(cls.price) - (appliedCoupon?.discount ?? 0));
+                          return (
+                            <Button className="w-full" onClick={handleCardCheckout} disabled={submitting}>
+                              {submitting
+                                ? t("booking.booking")
+                                : cardTotal > 0
+                                  ? `Book & pay ${formatCRC(cardTotal)}`
+                                  : t("booking.confirmBooking")}
+                            </Button>
+                          );
+                        })()
                       ) : (
                         <Button className="w-full" onClick={handleRedeem} disabled={submitting || !selectedOfferingId}>
                           {submitting ? t("booking.booking") : t("booking.confirmBooking")}
