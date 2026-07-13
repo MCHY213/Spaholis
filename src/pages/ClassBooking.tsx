@@ -4,6 +4,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneField, isValidPhoneNumber } from "@/components/booking/PhoneField";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
@@ -82,7 +83,8 @@ const ClassBookingPage = () => {
     ? ["Your Details", "Payment", "Confirmation"]
     : ["Your Details", "Confirmation"];
 
-  const canProceed = !!formData.name && !!formData.email;
+  const canProceed =
+    !!formData.name && !!formData.email && (!formData.phone || isValidPhoneNumber(formData.phone));
 
   const createClassBooking = async (opts: {
     paymentStatus: string;
@@ -370,7 +372,15 @@ const ClassBookingPage = () => {
                       </div>
                       <div>
                         <label className="font-body text-sm font-medium text-foreground mb-1.5 block">Phone</label>
-                        <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+506 8888-8888" />
+                        <PhoneField
+                          value={formData.phone}
+                          onChange={(v) => setFormData({ ...formData, phone: v })}
+                          placeholder="8888 8888"
+                          invalid={!!formData.phone && !isValidPhoneNumber(formData.phone)}
+                        />
+                        {!!formData.phone && !isValidPhoneNumber(formData.phone) && (
+                          <p className="text-xs text-destructive mt-1 font-body">Enter a valid phone number for the selected country.</p>
+                        )}
                       </div>
                     </div>
                   </div>

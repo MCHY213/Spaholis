@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneField, isValidPhoneNumber } from "@/components/booking/PhoneField";
 import { ConsultationForm } from "@/components/booking/ConsultationForm";
 import { Calendar } from "@/components/ui/calendar";
 import { Navbar } from "@/components/Navbar";
@@ -247,7 +248,7 @@ const BookingPage = () => {
     }
     if (step === dateStepIdx && dateStepIdx > 0 && !isRetreat) return locationVisit ? !!selectedDate : (!!selectedDate && !!selectedSlot);
     if (step === detailsStepIdx) {
-      const baseOk = NAME_RE.test(formData.name.trim()) && EMAIL_RE.test(formData.email.trim()) && (!formData.phone || PHONE_RE.test(formData.phone.trim()));
+      const baseOk = NAME_RE.test(formData.name.trim()) && EMAIL_RE.test(formData.email.trim()) && (!formData.phone || isValidPhoneNumber(formData.phone));
       return isRetreat ? baseOk : (baseOk && (!locationVisit || !!formData.address.trim()));
     }
     return true;
@@ -937,7 +938,15 @@ const BookingPage = () => {
                       </div>
                       <div>
                         <label className="font-body text-sm font-medium text-foreground mb-1.5 block">{t("booking.details.phone")}</label>
-                        <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })} placeholder="+506 8888 8888" inputMode="tel" autoComplete="tel" />
+                        <PhoneField
+                          value={formData.phone}
+                          onChange={(v) => setFormData({ ...formData, phone: v })}
+                          placeholder="8888 8888"
+                          invalid={!!formData.phone && !isValidPhoneNumber(formData.phone)}
+                        />
+                        {!!formData.phone && !isValidPhoneNumber(formData.phone) && (
+                          <p className="text-xs text-destructive mt-1 font-body">{t("booking.details.phoneInvalid", { defaultValue: "Enter a valid phone number for the selected country." })}</p>
+                        )}
                       </div>
                       {locationVisit && (
                         <div>

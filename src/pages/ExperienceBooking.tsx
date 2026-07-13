@@ -8,6 +8,7 @@ import { Footer } from "@/components/Footer";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneField, isValidPhoneNumber } from "@/components/booking/PhoneField";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar } from "@/components/ui/calendar";
 import { useServicesByType } from "@/hooks/useServices";
@@ -76,7 +77,7 @@ export default function ExperienceBooking() {
   const canProceed = () => {
     if (step === 0) return !!selectedDate;
     if (step === 1) return !!selectedSlot && !selectedSlot.full && guests >= minGuests && guests <= selectedSlot.spotsLeft;
-    if (step === 2) return form.name.trim() && form.email.trim();
+    if (step === 2) return !!form.name.trim() && !!form.email.trim() && (!form.phone || isValidPhoneNumber(form.phone));
     return false;
   };
 
@@ -370,7 +371,15 @@ export default function ExperienceBooking() {
                 </div>
                 <div>
                   <label className="font-body text-sm text-foreground mb-1 block">Phone / WhatsApp</label>
-                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+1 (555) 000-0000" />
+                  <PhoneField
+                    value={form.phone}
+                    onChange={(v) => setForm({ ...form, phone: v })}
+                    placeholder="8888 8888"
+                    invalid={!!form.phone && !isValidPhoneNumber(form.phone)}
+                  />
+                  {!!form.phone && !isValidPhoneNumber(form.phone) && (
+                    <p className="text-xs text-destructive mt-1 font-body">Enter a valid phone number for the selected country.</p>
+                  )}
                 </div>
               </div>
 
