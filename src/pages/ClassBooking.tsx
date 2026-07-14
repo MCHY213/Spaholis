@@ -104,6 +104,7 @@ const ClassBookingPage = () => {
       schedule_id: scheduleId,
       guest_name: formData.name,
       guest_email: formData.email,
+      guest_phone: formData.phone || null,
       status: "booked",
       payment_status: opts.paymentStatus,
       payment_method: opts.paymentMethod,
@@ -173,6 +174,7 @@ const ClassBookingPage = () => {
           schedule_id: scheduleId,
           guest_name: formData.name,
           guest_email: formData.email,
+          guest_phone: formData.phone || null,
           coupon_code: appliedCoupon?.code ?? null,
         },
       });

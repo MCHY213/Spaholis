@@ -34,6 +34,7 @@ const BodySchema = z.object({
   schedule_id: z.string().uuid(),
   guest_name: z.string().trim().min(2).max(100),
   guest_email: z.string().trim().email().max(255),
+  guest_phone: z.string().trim().max(30).optional().nullable(),
   coupon_code: z.string().trim().max(64).optional().nullable(),
 });
 type Body = z.infer<typeof BodySchema>;
@@ -178,6 +179,7 @@ Deno.serve(async (req) => {
         user_id: userId,
         guest_name: body.guest_name,
         guest_email: body.guest_email,
+        guest_phone: body.guest_phone || null,
         status: "confirmed",
         payment_status: "paid",
         payment_method: "free", // 100% coupon = no money charged
@@ -234,6 +236,7 @@ Deno.serve(async (req) => {
       user_id: userId,
       guest_name: body.guest_name,
       guest_email: body.guest_email,
+      guest_phone: body.guest_phone || null,
       status: "pending_payment",
       payment_status: "pending",
       payment_method: "card",
