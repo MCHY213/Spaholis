@@ -137,6 +137,16 @@ export function AdminClassCalendarWithAttendees() {
       const link = `${window.location.origin}/classes?m=${res.access_token}`;
       setOrderResult({ code: res.code, link, offeringName: res.offering_name });
       toast.success(`Order created — code ${res.code}`);
+      // Fire the "membership ready" email to the customer (+ admin copy).
+      supabase.functions
+        .invoke("send-membership-order-email", { body: { userOfferingId: res.id } })
+        .then(
+          ({ error: mailErr }) =>
+            mailErr
+              ? toast.warning("Order created, but the email didn't send — share the link manually.")
+              : toast.success("Email sent to the customer."),
+          () => toast.warning("Order created, but the email didn't send — share the link manually."),
+        );
     } catch (e: any) {
       toast.error(e.message || "Failed to create order");
     } finally {
@@ -790,7 +800,7 @@ export function AdminClassCalendarWithAttendees() {
                   <Input readOnly value={orderResult.link} onFocus={(e) => e.currentTarget.select()} className="font-mono text-xs" />
                   <Button type="button" variant="outline" onClick={() => { navigator.clipboard?.writeText(orderResult.link); toast.success("Link copied"); }}>Copy</Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 font-body">Opening this link lets them book eligible classes at $0 — no login. (Auto-email is added in the next phase.)</p>
+                <p className="text-xs text-muted-foreground mt-1 font-body">We also emailed this link to the customer (with a copy to admin). Opening it lets them book eligible classes at $0 — no login.</p>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={resetOrder}>Create another</Button>
