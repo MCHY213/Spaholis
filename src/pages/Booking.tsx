@@ -77,10 +77,15 @@ function getStepKeys(service?: ServiceRow): string[] {
   const isClass = isClassType(service);
   if (isClass) return [S, DT, YD, CONF];
 
+  // Retreats stay a pure inquiry — they're quoted case by case.
   if (service.category === "Wellness Retreats") return [S, IF, YD, CONF];
-  if (service.type === "program") return [S, IF, YD, CONF];
 
-  if (service.type === "experience") return [S, DT, YD, CONF];
+  // Programs and experiences take the same deposit as treatments. Programs have
+  // no date step (they're scheduled with the client afterwards), which the
+  // Summary and createBooking already tolerate (start_time stays null).
+  if (service.type === "program") return [S, IF, YD, SUM, CHK, CONF];
+
+  if (service.type === "experience") return [S, DT, YD, SUM, CHK, CONF];
 
   // Facials skip the health intake but still get the Summary confirmation.
   if (isFacialService(service)) return [S, DT, YD, SUM, CHK, CONF];
@@ -362,7 +367,10 @@ const BookingPage = () => {
 
 
   const handleNext = async () => {
-    if (isRetreat && step === detailsStepIdx && canProceed()) {
+    // Inquiry-only retreats submit straight from the details step. Programs are
+    // also "isRetreat" but now take a deposit, so they must fall through to the
+    // Summary → checkout branch below instead of submitting here.
+    if (isRetreat && !needsPayment && step === detailsStepIdx && canProceed()) {
       setSubmitting(true);
       try {
         await createBooking();
@@ -1186,7 +1194,7 @@ const BookingPage = () => {
                 <Button variant="default" onClick={handleNext} disabled={!canProceed() || submitting}>
                   {submitting
                     ? t("booking.nav.submitting")
-                    : (isRetreat && step === detailsStepIdx)
+                    : (isRetreat && !needsPayment && step === detailsStepIdx)
                       ? t("booking.nav.submitInquiry")
                       : step === paidSubmitStepIdx && needsPayment
                         ? t("booking.nav.continueToCheckout")

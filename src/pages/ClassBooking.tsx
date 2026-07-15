@@ -241,7 +241,7 @@ const ClassBookingPage = () => {
             }),
           );
         } catch { /* sessionStorage unavailable — return page will show "no_session" */ }
-        toast.success(`Redirecting to secure payment ($${data.amount})…`);
+        toast.success(`Redirecting to secure payment (${formatCRC(data.amount)})…`);
         window.location.href = data.bacLink;
         return;
       }

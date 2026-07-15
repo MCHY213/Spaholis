@@ -48,16 +48,31 @@ describe("booking wizard step order", () => {
     expect(order).toBe("S,DT,YD,CONF");
   });
 
-  it("retreat / program keep intake-before-details inquiry flow", () => {
-    const retreatMatches = [
-      SRC.match(/Wellness Retreats"\) return \[([^\]]+)\];/),
-      SRC.match(/"program"\) return \[([^\]]+)\];/),
-    ];
-    for (const m of retreatMatches) {
-      expect(m).toBeTruthy();
-      const order = m![1].replace(/\s+/g, "");
-      expect(order).toBe("S,IF,YD,CONF");
-    }
+  it("retreat keeps the intake-before-details inquiry flow (quoted, no deposit)", () => {
+    const m = SRC.match(/Wellness Retreats"\) return \[([^\]]+)\];/);
+    expect(m).toBeTruthy();
+    expect(m![1].replace(/\s+/g, "")).toBe("S,IF,YD,CONF");
+  });
+
+  it("program and experience take the same deposit as treatments", () => {
+    // Programs keep intake-before-details and have no date step (scheduled with
+    // the client afterwards), but both now end in Summary → Checkout.
+    const program = SRC.match(/"program"\) return \[([^\]]+)\];/);
+    expect(program).toBeTruthy();
+    expect(program![1].replace(/\s+/g, "")).toBe("S,IF,YD,SUM,CHK,CONF");
+
+    const experience = SRC.match(/"experience"\) return \[([^\]]+)\];/);
+    expect(experience).toBeTruthy();
+    expect(experience![1].replace(/\s+/g, "")).toBe("S,DT,YD,SUM,CHK,CONF");
+  });
+
+  it("the retreat inquiry shortcut never hijacks a deposit flow", () => {
+    // Programs match `isRetreat` but now take a deposit. Without the
+    // !needsPayment guard the details step would submit them as an inquiry and
+    // they'd never reach checkout.
+    expect(SRC).toMatch(
+      /isRetreat\s*&&\s*!needsPayment\s*&&\s*step\s*===\s*detailsStepIdx/,
+    );
   });
 
   it("Summary step key is registered in EN + ES locales", () => {
