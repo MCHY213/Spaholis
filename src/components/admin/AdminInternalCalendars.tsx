@@ -25,7 +25,19 @@ interface CalendarEntry {
   duration_minutes: number;
   notes: string | null;
   color: string | null;
+  /** When set, this entry occupies that room and blocks it on the website. */
+  room_id: string | null;
+  /** Happening away from the spa — reserves no room, so the spa stays bookable. */
+  is_offsite: boolean;
 }
+
+interface Room {
+  id: string;
+  name: string;
+}
+
+/** Form value for the location select: "" = unset, "offsite", or a room id. */
+const OFFSITE = "offsite";
 
 const TYPE_COLORS: Record<CalendarType, string> = {
   treatment: "#8B5CF6",
@@ -45,6 +57,7 @@ const emptyForm = {
   start_time: "09:00",
   duration_minutes: 60,
   notes: "",
+  location: "",
 };
 
 export function AdminInternalCalendars() {
@@ -55,6 +68,18 @@ export function AdminInternalCalendars() {
   const [editingEntry, setEditingEntry] = useState<CalendarEntry | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [rooms, setRooms] = useState<Room[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("rooms")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      setRooms((data as Room[]) ?? []);
+    })();
+  }, []);
 
   const loadEntries = useCallback(async () => {
     const start = format(startOfWeek(startOfMonth(currentDate)), "yyyy-MM-dd");
@@ -93,6 +118,7 @@ export function AdminInternalCalendars() {
       start_time: entry.start_time.slice(0, 5),
       duration_minutes: entry.duration_minutes,
       notes: entry.notes || "",
+      location: entry.is_offsite ? OFFSITE : (entry.room_id ?? ""),
     });
     setModalOpen(true);
   };
@@ -117,6 +143,9 @@ export function AdminInternalCalendars() {
       duration_minutes: form.duration_minutes,
       notes: form.notes || null,
       color: TYPE_COLORS[calendarType],
+      // Only a room pins the entry to the spa; off-site leaves every room free.
+      room_id: form.location && form.location !== OFFSITE ? form.location : null,
+      is_offsite: form.location === OFFSITE,
     };
 
     let error;
@@ -292,6 +321,27 @@ export function AdminInternalCalendars() {
             <div className="space-y-1.5">
               <Label>Duration (minutes)</Label>
               <Input type="number" min={15} step={15} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: parseInt(e.target.value) || 60 })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Location</Label>
+              <select
+                value={form.location}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Not specified</option>
+                <option value={OFFSITE}>Off-site (client's location)</option>
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>Holis Wellness Center — {r.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                {form.location === OFFSITE
+                  ? "No room is held — the spa stays fully bookable online."
+                  : form.location
+                    ? "This room shows as unavailable on the website for this time."
+                    : "Pick a room to hold it, or Off-site to leave the spa free."}
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label>Notes (optional)</Label>

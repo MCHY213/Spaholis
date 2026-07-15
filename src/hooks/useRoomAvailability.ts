@@ -77,6 +77,28 @@ export function useRoomAvailability(
         .lte("start_time", dayEnd.toISOString());
       if (bookErr) throw bookErr;
 
+      // Internal calendar entries pinned to a room also occupy it. The RPC
+      // returns only room_id + interval, never the internal title/notes.
+      // Off-site entries carry no room, so they never block the spa.
+      const { data: internal, error: internalErr } = await supabase.rpc(
+        "get_internal_busy_intervals",
+        { _from: dayStart.toISOString(), _to: dayEnd.toISOString() },
+      );
+      if (internalErr) throw internalErr;
+
+      const busy = [
+        ...(bookings ?? []).map((b: any) => ({
+          room_id: b.room_id,
+          start: new Date(b.start_time),
+          end: new Date(b.end_time),
+        })),
+        ...(internal ?? []).map((i: any) => ({
+          room_id: i.room_id,
+          start: new Date(i.busy_start),
+          end: new Date(i.busy_end),
+        })),
+      ].filter((x) => x.room_id && !isNaN(x.start.getTime()) && !isNaN(x.end.getTime()));
+
       // 4. Generate slots per room, filtering conflicts. The shared spa
       //    slot generator produces the EXACT same list the backend will
       //    accept — same tz, same window, same 30-min interval, same
@@ -85,14 +107,10 @@ export function useRoomAvailability(
       const results: TimeSlot[] = [];
 
       for (const room of validRooms) {
-        const roomBookings = (bookings ?? []).filter((b: any) => b.room_id === room.id);
+        const roomBusy = busy.filter((b) => b.room_id === room.id);
         for (const slot of slots) {
           const slotEnd = new Date(slot.getTime() + durationMinutes * 60000);
-          const hasConflict = roomBookings.some((b: any) => {
-            const bStart = new Date(b.start_time);
-            const bEnd = new Date(b.end_time);
-            return slot < bEnd && slotEnd > bStart;
-          });
+          const hasConflict = roomBusy.some((b) => slot < b.end && slotEnd > b.start);
           if (!hasConflict) {
             results.push({
               time: slot,

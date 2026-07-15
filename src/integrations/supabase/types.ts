@@ -23,7 +23,9 @@ export type Database = {
           end_time: string | null
           entry_date: string
           id: string
+          is_offsite: boolean
           notes: string | null
+          room_id: string | null
           start_time: string
           title: string
           updated_at: string
@@ -36,7 +38,9 @@ export type Database = {
           end_time?: string | null
           entry_date: string
           id?: string
+          is_offsite?: boolean
           notes?: string | null
+          room_id?: string | null
           start_time: string
           title: string
           updated_at?: string
@@ -49,12 +53,22 @@ export type Database = {
           end_time?: string | null
           entry_date?: string
           id?: string
+          is_offsite?: boolean
           notes?: string | null
+          room_id?: string | null
           start_time?: string
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "admin_calendar_entries_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       attendee_labels: {
         Row: {
@@ -2284,6 +2298,14 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      get_internal_busy_intervals: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          busy_end: string
+          busy_start: string
+          room_id: string
+        }[]
       }
       get_user_offering_by_token: { Args: { _token: string }; Returns: Json }
       has_role: {
