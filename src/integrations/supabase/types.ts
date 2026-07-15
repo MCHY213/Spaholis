@@ -56,6 +56,33 @@ export type Database = {
         }
         Relationships: []
       }
+      attendee_labels: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -417,6 +444,7 @@ export type Database = {
           guest_name: string | null
           guest_phone: string | null
           id: string
+          label_id: string | null
           notification_sent_at: string | null
           payment_id: string | null
           payment_method: string | null
@@ -436,6 +464,7 @@ export type Database = {
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
+          label_id?: string | null
           notification_sent_at?: string | null
           payment_id?: string | null
           payment_method?: string | null
@@ -455,6 +484,7 @@ export type Database = {
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
+          label_id?: string | null
           notification_sent_at?: string | null
           payment_id?: string | null
           payment_method?: string | null
@@ -467,6 +497,13 @@ export type Database = {
           user_offering_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "class_bookings_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "attendee_labels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "class_bookings_schedule_id_fkey"
             columns: ["schedule_id"]

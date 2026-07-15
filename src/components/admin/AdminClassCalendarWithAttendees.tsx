@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useOfferings } from "@/hooks/useOfferings";
+import { AttendeeLabelPicker, type AttendeeLabel } from "@/components/admin/AttendeeLabelPicker";
 
 interface ScheduledClass {
   id: string;
@@ -38,6 +39,7 @@ interface Attendee {
   guest_name: string | null;
   guest_email: string | null;
   guest_phone: string | null;
+  label_id: string | null;
   status: string;
   payment_status: string;
   payment_method: string | null;
@@ -119,6 +121,24 @@ export function AdminClassCalendarWithAttendees() {
   const [editingAttendeeId, setEditingAttendeeId] = useState<string | null>(null);
   const [attendeeForm, setAttendeeForm] = useState<AttendeeForm>({ name: "", email: "", phone: "", total_price: 0, payment_method: "cash", payment_status: "paid", coupon_code: "" });
   const [addingAttendee, setAddingAttendee] = useState(false);
+  // ---- Customizable colored labels for attendees ----
+  const [labels, setLabels] = useState<AttendeeLabel[]>([]);
+  const loadLabels = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("attendee_labels")
+      .select("id, name, color, sort_order")
+      .order("sort_order")
+      .order("created_at");
+    if (!error) setLabels((data as AttendeeLabel[]) ?? []);
+  }, []);
+  useEffect(() => { loadLabels(); }, [loadLabels]);
+
+  const assignLabel = async (attendeeId: string, labelId: string | null) => {
+    const { error } = await supabase.from("class_bookings").update({ label_id: labelId }).eq("id", attendeeId);
+    if (error) { toast.error(error.message); return; }
+    setAttendees((prev) => prev.map((a) => (a.id === attendeeId ? { ...a, label_id: labelId } : a)));
+  };
+
   // ---- Contact recall: typeahead over everyone we've ever recorded ----
   const [contactMatches, setContactMatches] = useState<KnownContact[]>([]);
   const [showContactList, setShowContactList] = useState(false);
@@ -357,7 +377,7 @@ export function AdminClassCalendarWithAttendees() {
     setLoadingAttendees(true);
     const { data } = await supabase
       .from("class_bookings")
-      .select("id, user_id, guest_name, guest_email, guest_phone, status, payment_status, payment_method, total_price, coupon_code, created_at")
+      .select("id, user_id, guest_name, guest_email, guest_phone, label_id, status, payment_status, payment_method, total_price, coupon_code, created_at")
       .eq("schedule_id", scheduleId)
       .order("created_at", { ascending: true });
 
@@ -819,11 +839,13 @@ export function AdminClassCalendarWithAttendees() {
                             <p className="text-sm font-medium truncate flex items-center gap-2">
                               {cancelled ? <XCircle className="h-3.5 w-3.5 text-destructive" /> : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
                               {name}
-                              {a.user_id ? (
-                                <Badge variant="outline" className="text-[10px]">Member</Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-[10px]">Guest</Badge>
-                              )}
+                              <AttendeeLabelPicker
+                                labelId={a.label_id}
+                                labels={labels}
+                                fallback={a.user_id ? "Member" : "Guest"}
+                                onAssign={(id) => assignLabel(a.id, id)}
+                                onLabelsChanged={loadLabels}
+                              />
                             </p>
                             <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
                               <Mail className="h-3 w-3" /> {email}
@@ -867,10 +889,11 @@ export function AdminClassCalendarWithAttendees() {
                     size="sm"
                     onClick={() => {
                       const rows = [
-                        ["Name", "Email", "Status", "Payment", "Method", "Total", "Booked at"],
+                        ["Name", "Email", "Label", "Status", "Payment", "Method", "Total", "Booked at"],
                         ...attendees.map((a) => [
                           a.profile_name || a.guest_name || "Guest",
                           a.profile_email || a.guest_email || "",
+                          labels.find((l) => l.id === a.label_id)?.name ?? "",
                           a.status,
                           a.payment_status,
                           a.payment_method || "",
