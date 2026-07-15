@@ -21,6 +21,7 @@ export type BookingErrorKind =
   | "already_failed"       // 409 — booking already marked failed
   | "wrong_state"          // 409 — booking in a state that blocks the action
   | "amount_mismatch"      // 409 — deposit amount mismatch
+  | "no_session"           // no pending booking recorded in this browser
   | "auth_required"        // 401 — action needs sign-in
   | "forbidden"            // 403 — generic auth denial
   | "rate_limited"         // 429
@@ -84,7 +85,10 @@ const BOOKING_ERROR_MAP: Record<string, Mapping> = {
   already_paid: { kind: "already_paid", message: "This booking is already paid — check your email for the confirmation." },
   already_failed: { kind: "already_failed", message: "This booking was already marked as failed. Please start a new one.", action: "start_over" },
   wrong_state: { kind: "wrong_state", message: "This booking can't be updated in its current state. Please contact us.", actionLabel: "Contact support", action: "contact_support" },
-  amount_mismatch: { kind: "amount_mismatch", message: "The payment amount didn't match what we expected. Please contact us.", actionLabel: "Contact support", action: "contact_support" },
+  amount_mismatch: { kind: "amount_mismatch", message: "The amount BAC reported doesn't match the expected deposit. Please contact us with your receipt.", actionLabel: "Contact support", action: "contact_support" },
+  // Detected in the browser (no edge-function call): the return link was opened
+  // without a pending booking recorded in this session.
+  no_session: { kind: "no_session", message: "This browser has no record of a pending booking. If you paid on a different device, contact us with your BAC receipt.", actionLabel: "Contact support", action: "contact_support" },
   fetch_failed: { kind: "server_error", message: "We couldn't reach our booking service. Please try again in a moment.", actionLabel: "Try again", action: "retry" },
   update_failed: { kind: "server_error", message: "We couldn't finalize your booking. Please try again or contact us.", actionLabel: "Try again", action: "retry" },
   create_failed: { kind: "server_error", message: "We couldn't create your booking. Please try again.", actionLabel: "Try again", action: "retry" },
@@ -101,6 +105,15 @@ const STATUS_FALLBACK: Array<{ test: (s: number) => boolean; mapping: Mapping }>
   { test: (s) => s >= 500, mapping: { kind: "server_error", message: "Our booking service is having trouble. Please try again shortly.", actionLabel: "Try again", action: "retry" } },
   { test: (s) => s >= 400, mapping: { kind: "invalid_input", message: "The booking couldn't be submitted. Please review your details and try again." } },
 ];
+
+/**
+ * Copy for a reason the UI detects on its own, with no edge-function call
+ * involved (e.g. `no_session`). Keeps components from hand-rolling their own
+ * duplicate copy — the map above stays the single source of truth.
+ */
+export function bookingErrorMessage(reason: string): string | null {
+  return BOOKING_ERROR_MAP[reason]?.message ?? null;
+}
 
 /** Convert an `InvokeResult` from a checkout edge function into a UI-ready state. */
 export function toBookingErrorState(result: InvokeResult): BookingErrorState {

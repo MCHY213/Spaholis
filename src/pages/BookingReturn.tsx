@@ -7,7 +7,7 @@ import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
-import { toBookingErrorState } from "@/lib/bookingErrors";
+import { toBookingErrorState, bookingErrorMessage } from "@/lib/bookingErrors";
 import { Check, AlertTriangle, Loader2, Clock, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 
@@ -65,6 +65,7 @@ const BookingReturn = () => {
       try {
         if (!pending.bookingId || !UUID_RE.test(pending.bookingId)) {
           setInvalidReason("no_session");
+          setInvalidMessage(bookingErrorMessage("no_session"));
           setFinalStatus("invalid");
           return;
         }
@@ -238,19 +239,6 @@ const BookingReturn = () => {
     // payments just start a fresh booking instead.
     pending.type !== "class";
 
-  // Human-friendly copy for the specific reason returned by finalize-booking.
-  const invalidReasonCopy: Record<string, string> = {
-    no_session: "This browser has no record of a pending booking. If you paid on a different device, contact us with your BAC receipt.",
-    network: "We couldn't reach our verification service. Please try refreshing or contact us.",
-    not_found: "That booking reference no longer exists.",
-    email_mismatch: "The email on this browser doesn't match the booking on file.",
-    amount_mismatch: "The amount BAC reported doesn't match the expected deposit.",
-    expired: "The pending payment window (3 hours) has passed.",
-    wrong_state: "This booking has already been closed.",
-    invalid_booking_id: "The booking reference isn't valid.",
-    no_status: "BAC didn't return a payment status we could read.",
-  };
-
   const badge: { label: string; className: string } =
     processing
       ? { label: "Verifying…", className: "bg-muted text-muted-foreground border-border" }
@@ -332,7 +320,6 @@ const BookingReturn = () => {
                 </h1>
                 <p className="text-muted-foreground">
                   {invalidMessage
-                    || (invalidReason && invalidReasonCopy[invalidReason])
                     || "The confirmation link couldn't be validated against a pending booking."}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
