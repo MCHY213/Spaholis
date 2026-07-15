@@ -20,6 +20,7 @@ export type Database = {
           color: string | null
           created_at: string
           duration_minutes: number
+          end_date: string | null
           end_time: string | null
           entry_date: string
           group_id: string | null
@@ -38,6 +39,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           duration_minutes?: number
+          end_date?: string | null
           end_time?: string | null
           entry_date: string
           group_id?: string | null
@@ -56,6 +58,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           duration_minutes?: number
+          end_date?: string | null
           end_time?: string | null
           entry_date?: string
           group_id?: string | null

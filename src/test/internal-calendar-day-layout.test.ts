@@ -20,6 +20,7 @@ const entry = (start_time: string, duration_minutes: number, title = `e${++seq}`
   calendar_type: "treatment",
   title,
   entry_date: "2026-07-15",
+  end_date: null,
   start_time,
   end_time: null,
   duration_minutes,

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2 } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, startOfWeek, endOfWeek, isSameMonth, isSameDay, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, startOfWeek, endOfWeek, isSameMonth, isSameDay, parseISO, differenceInCalendarDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AdminClassCalendarWithAttendees } from "./AdminClassCalendarWithAttendees";
@@ -23,6 +23,8 @@ export interface CalendarEntry {
   calendar_type: string;
   title: string;
   entry_date: string;
+  /** Last day the entry covers. Null means it's a single-day entry. */
+  end_date: string | null;
   start_time: string;
   end_time: string | null;
   duration_minutes: number;
@@ -157,6 +159,7 @@ const TYPE_LABELS: Record<CalendarType, string> = {
 const emptyForm = {
   title: "",
   entry_date: format(new Date(), "yyyy-MM-dd"),
+  end_date: format(new Date(), "yyyy-MM-dd"),
   start_time: "09:00",
   duration_minutes: 60,
   notes: "",
@@ -244,12 +247,14 @@ export function AdminInternalCalendars() {
   const loadEntries = useCallback(async () => {
     const start = format(startOfWeek(startOfMonth(currentDate)), "yyyy-MM-dd");
     const end = format(endOfWeek(endOfMonth(currentDate)), "yyyy-MM-dd");
+    // Overlap, not containment: an entry that started before this month but
+    // runs into it still belongs on the grid.
     const { data } = await supabase
       .from("admin_calendar_entries")
       .select("*")
       .eq("calendar_type", calendarType)
-      .gte("entry_date", start)
       .lte("entry_date", end)
+      .or(`end_date.gte.${start},and(end_date.is.null,entry_date.gte.${start})`)
       .order("start_time", { ascending: true });
     setEntries((data as CalendarEntry[]) ?? []);
   }, [calendarType, currentDate]);
@@ -270,6 +275,15 @@ export function AdminInternalCalendars() {
   /** Entries on hidden sub-calendars drop out; ungrouped ones always show. */
   const visibleEntries = entries.filter((e) => !e.group_id || !hiddenGroups.has(e.group_id));
 
+  /** yyyy-MM-dd strings compare correctly, so a plain range check is enough. */
+  const coversDay = (e: CalendarEntry, dayKey: string) =>
+    e.entry_date <= dayKey && (e.end_date ?? e.entry_date) >= dayKey;
+
+  /** Multi-day entries read as banners, like all-day ones — not as a block
+   *  pinned to one hour of one day. */
+  const isBanner = (e: CalendarEntry) =>
+    e.is_all_day || !!(e.end_date && e.end_date > e.entry_date);
+
   /** Where the entry happens, for the list view. Null when unspecified. */
   const locationLabel = (entry: CalendarEntry): string | null => {
     if (entry.is_offsite) {
@@ -281,9 +295,11 @@ export function AdminInternalCalendars() {
 
   const openNew = (date?: Date) => {
     setEditingEntry(null);
+    const day = format(date || new Date(), "yyyy-MM-dd");
     setForm({
       ...emptyForm,
-      entry_date: format(date || new Date(), "yyyy-MM-dd"),
+      entry_date: day,
+      end_date: day,
     });
     setCreatingGroup(false);
     setModalOpen(true);
@@ -294,6 +310,7 @@ export function AdminInternalCalendars() {
     setForm({
       title: entry.title,
       entry_date: entry.entry_date,
+      end_date: entry.end_date ?? entry.entry_date,
       start_time: entry.start_time.slice(0, 5),
       duration_minutes: entry.duration_minutes,
       notes: entry.notes || "",
@@ -308,6 +325,10 @@ export function AdminInternalCalendars() {
 
   const handleSave = async () => {
     if (!form.title.trim()) { toast.error("Title is required"); return; }
+    if (form.end_date && form.end_date < form.entry_date) {
+      toast.error("The end date can't be before the start date");
+      return;
+    }
     setSaving(true);
 
     const hours = Math.floor(form.duration_minutes / 60);
@@ -325,6 +346,8 @@ export function AdminInternalCalendars() {
       calendar_type: calendarType,
       title: form.title.trim(),
       entry_date: form.entry_date,
+      // Store a same-day range as null, so single-day entries stay simple.
+      end_date: form.end_date && form.end_date > form.entry_date ? form.end_date : null,
       start_time: allDay ? "00:00" : form.start_time,
       end_time: allDay ? null : end_time,
       duration_minutes: allDay ? 1440 : form.duration_minutes,
@@ -418,10 +441,11 @@ export function AdminInternalCalendars() {
               {/* Day cells */}
               <div className="grid grid-cols-7">
                 {days.map((day) => {
+                  const dayKey = format(day, "yyyy-MM-dd");
                   const dayEntries = visibleEntries
-                    .filter((e) => e.entry_date === format(day, "yyyy-MM-dd"))
-                    // All-day entries read as banners, so float them to the top.
-                    .sort((a, b) => Number(b.is_all_day) - Number(a.is_all_day));
+                    .filter((e) => coversDay(e, dayKey))
+                    // Banners read as headers for the day, so float them up.
+                    .sort((a, b) => Number(isBanner(b)) - Number(isBanner(a)));
                   const isToday = isSameDay(day, new Date());
                   const inMonth = isSameMonth(day, currentDate);
 
@@ -450,12 +474,12 @@ export function AdminInternalCalendars() {
                               onClick={(e) => { e.stopPropagation(); openEdit(entry); }}
                               className="text-[10px] leading-tight px-1.5 py-0.5 rounded truncate font-medium cursor-pointer hover:opacity-80"
                               style={
-                                entry.is_all_day
+                                isBanner(entry)
                                   ? { backgroundColor: color, color: readableOn(color) }
                                   : { backgroundColor: `${color}20`, color }
                               }
                             >
-                              {entry.is_all_day ? entry.title : `${entry.start_time.slice(0, 5)} ${entry.title}`}
+                              {isBanner(entry) ? entry.title : `${entry.start_time.slice(0, 5)} ${entry.title}`}
                             </div>
                           );
                         })}
@@ -485,6 +509,8 @@ export function AdminInternalCalendars() {
                       <p className="text-sm font-medium truncate">{entry.title}</p>
                       <p className="text-xs text-muted-foreground">
                         {format(parseISO(entry.entry_date), "MMM d, yyyy")}
+                        {entry.end_date && entry.end_date > entry.entry_date
+                          && ` – ${format(parseISO(entry.end_date), "MMM d, yyyy")}`}
                         {entry.is_all_day
                           ? " · All day"
                           : ` · ${entry.start_time.slice(0, 5)}${entry.end_time ? ` – ${entry.end_time.slice(0, 5)}` : ""} · ${entry.duration_minutes}min`}
@@ -517,10 +543,12 @@ export function AdminInternalCalendars() {
             <DialogTitle>{dayViewDate ? format(dayViewDate, "EEEE, MMMM d, yyyy") : ""}</DialogTitle>
           </DialogHeader>
           {dayViewDate && (() => {
-            const dayEntries = visibleEntries.filter((e) => e.entry_date === format(dayViewDate, "yyyy-MM-dd"));
-            // All-day entries sit in a band above the timeline, out of the way.
-            const allDayEntries = dayEntries.filter((e) => e.is_all_day);
-            const laid = layoutDay(dayEntries.filter((e) => !e.is_all_day));
+            const dayKey = format(dayViewDate, "yyyy-MM-dd");
+            const dayEntries = visibleEntries.filter((e) => coversDay(e, dayKey));
+            // All-day and multi-day entries sit in a band above the timeline,
+            // out of the way of the hour-by-hour schedule.
+            const allDayEntries = dayEntries.filter(isBanner);
+            const laid = layoutDay(dayEntries.filter((e) => !isBanner(e)));
             // Stretch the default window to fit anything outside it.
             const startH = Math.min(DEFAULT_DAY_START_H, ...laid.map((l) => Math.floor(l.startMin / 60)));
             const endH = Math.max(DEFAULT_DAY_END_H, ...laid.map((l) => Math.ceil(l.endMin / 60)));
@@ -565,7 +593,11 @@ export function AdminInternalCalendars() {
                           style={{ backgroundColor: `${color}20`, borderColor: `${color}55`, color }}
                           title={`All day · ${entry.title}${loc ? ` · ${loc}` : ""}`}
                         >
-                          <span className="text-[11px] font-semibold uppercase tracking-wide opacity-70 shrink-0">All day</span>
+                          <span className="text-[11px] font-semibold uppercase tracking-wide opacity-70 shrink-0">
+                            {entry.end_date && entry.end_date > entry.entry_date
+                              ? `${format(parseISO(entry.entry_date), "MMM d")} – ${format(parseISO(entry.end_date), "MMM d")}`
+                              : "All day"}
+                          </span>
                           <span className="text-[13px] font-medium truncate">{entry.title}</span>
                           {loc && <span className="ml-auto shrink-0 text-[11px] opacity-70">{loc}</span>}
                         </div>
@@ -706,18 +738,38 @@ export function AdminInternalCalendars() {
               <span className="text-sm">All day</span>
             </label>
 
-            <div className={cn("grid gap-3", form.is_all_day ? "grid-cols-1" : "grid-cols-2")}>
-              <div className="space-y-1.5">
-                <Label>Date</Label>
-                <Input type="date" value={form.entry_date} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} />
+            <div className="space-y-1.5">
+              <Label>Dates</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={form.entry_date}
+                  onChange={(e) => {
+                    const start = e.target.value;
+                    // Drag the end along so the range can never go backwards.
+                    setForm({ ...form, entry_date: start, end_date: form.end_date < start ? start : form.end_date });
+                  }}
+                />
+                <span className="text-sm text-muted-foreground shrink-0">to</span>
+                <Input
+                  type="date"
+                  min={form.entry_date}
+                  value={form.end_date}
+                  onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                />
               </div>
-              {!form.is_all_day && (
-                <div className="space-y-1.5">
-                  <Label>Start Time</Label>
-                  <Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
-                </div>
+              {form.end_date > form.entry_date && (
+                <p className="text-xs text-muted-foreground">
+                  Spans {differenceInCalendarDays(parseISO(form.end_date), parseISO(form.entry_date)) + 1} days — it shows on every day in the range.
+                </p>
               )}
             </div>
+            {!form.is_all_day && (
+              <div className="space-y-1.5">
+                <Label>Start Time</Label>
+                <Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
+              </div>
+            )}
             {!form.is_all_day && (
               <div className="space-y-1.5">
                 <Label>Duration (minutes)</Label>
