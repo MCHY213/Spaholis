@@ -12,6 +12,9 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths,
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AdminClassCalendarWithAttendees } from "./AdminClassCalendarWithAttendees";
+import { CalendarGroupsBar, type CalendarGroup } from "./CalendarGroupsBar";
+import { readableOn } from "./AttendeeLabelPicker";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type CalendarType = "treatment" | "retreat" | "class";
 
@@ -31,6 +34,10 @@ export interface CalendarEntry {
   is_offsite: boolean;
   /** Free-text place for an off-site entry (hotel, villa, client's address). */
   offsite_location: string | null;
+  /** Sub-calendar this entry belongs to — drives its color. */
+  group_id: string | null;
+  /** Spans the whole day; shown in a band above the timeline, not on it. */
+  is_all_day: boolean;
 }
 
 interface Room {
@@ -42,7 +49,7 @@ interface Room {
 const OFFSITE = "offsite";
 
 /** Day view: pixels per hour, and the default window before entries stretch it. */
-const HOUR_PX = 56;
+const HOUR_PX = 76;
 const DEFAULT_DAY_START_H = 8;
 const DEFAULT_DAY_END_H = 20;
 
@@ -133,6 +140,8 @@ const emptyForm = {
   notes: "",
   location: "",
   offsite_location: "",
+  group_id: "",
+  is_all_day: false,
 };
 
 export function AdminInternalCalendars() {
@@ -145,6 +154,25 @@ export function AdminInternalCalendars() {
   const [saving, setSaving] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [dayViewDate, setDayViewDate] = useState<Date | null>(null);
+  const [groups, setGroups] = useState<CalendarGroup[]>([]);
+  const [hiddenGroups, setHiddenGroups] = useState<Set<string>>(new Set());
+
+  const loadGroups = useCallback(async () => {
+    const { data } = await supabase
+      .from("calendar_groups")
+      .select("id, name, color, sort_order")
+      .order("sort_order")
+      .order("created_at");
+    setGroups((data as CalendarGroup[]) ?? []);
+  }, []);
+  useEffect(() => { loadGroups(); }, [loadGroups]);
+
+  const toggleGroup = (id: string) =>
+    setHiddenGroups((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   useEffect(() => {
     (async () => {
@@ -177,6 +205,15 @@ export function AdminInternalCalendars() {
     end: endOfWeek(endOfMonth(currentDate)),
   });
 
+  /** An entry wears its sub-calendar's color, else the calendar-type default. */
+  const entryColor = (entry: CalendarEntry): string =>
+    groups.find((g) => g.id === entry.group_id)?.color
+      ?? entry.color
+      ?? TYPE_COLORS[calendarType];
+
+  /** Entries on hidden sub-calendars drop out; ungrouped ones always show. */
+  const visibleEntries = entries.filter((e) => !e.group_id || !hiddenGroups.has(e.group_id));
+
   /** Where the entry happens, for the list view. Null when unspecified. */
   const locationLabel = (entry: CalendarEntry): string | null => {
     if (entry.is_offsite) {
@@ -205,6 +242,8 @@ export function AdminInternalCalendars() {
       notes: entry.notes || "",
       location: entry.is_offsite ? OFFSITE : (entry.room_id ?? ""),
       offsite_location: entry.offsite_location || "",
+      group_id: entry.group_id ?? "",
+      is_all_day: entry.is_all_day,
     });
     setModalOpen(true);
   };
@@ -220,13 +259,19 @@ export function AdminInternalCalendars() {
     const endM = (sm + mins) % 60;
     const end_time = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
 
+    // An all-day entry is stored as midnight + a full day, so that if it holds a
+    // room, the room reads as busy for the whole day on the website.
+    const allDay = form.is_all_day;
+
     const payload = {
       calendar_type: calendarType,
       title: form.title.trim(),
       entry_date: form.entry_date,
-      start_time: form.start_time,
-      end_time,
-      duration_minutes: form.duration_minutes,
+      start_time: allDay ? "00:00" : form.start_time,
+      end_time: allDay ? null : end_time,
+      duration_minutes: allDay ? 1440 : form.duration_minutes,
+      is_all_day: allDay,
+      group_id: form.group_id || null,
       notes: form.notes || null,
       color: TYPE_COLORS[calendarType],
       // Only a room pins the entry to the spa; off-site leaves every room free.
@@ -295,6 +340,13 @@ export function AdminInternalCalendars() {
               </Button>
             </div>
 
+            <CalendarGroupsBar
+              groups={groups}
+              hidden={hiddenGroups}
+              onToggle={toggleGroup}
+              onChanged={loadGroups}
+            />
+
             {/* Calendar Grid */}
             <div className="border border-border rounded-xl overflow-hidden">
               {/* Weekday headers */}
@@ -308,7 +360,10 @@ export function AdminInternalCalendars() {
               {/* Day cells */}
               <div className="grid grid-cols-7">
                 {days.map((day) => {
-                  const dayEntries = entries.filter((e) => e.entry_date === format(day, "yyyy-MM-dd"));
+                  const dayEntries = visibleEntries
+                    .filter((e) => e.entry_date === format(day, "yyyy-MM-dd"))
+                    // All-day entries read as banners, so float them to the top.
+                    .sort((a, b) => Number(b.is_all_day) - Number(a.is_all_day));
                   const isToday = isSameDay(day, new Date());
                   const inMonth = isSameMonth(day, currentDate);
 
@@ -329,16 +384,23 @@ export function AdminInternalCalendars() {
                         {format(day, "d")}
                       </div>
                       <div className="space-y-0.5">
-                        {dayEntries.slice(0, 3).map((entry) => (
-                          <div
-                            key={entry.id}
-                            onClick={(e) => { e.stopPropagation(); openEdit(entry); }}
-                            className="text-[10px] leading-tight px-1.5 py-0.5 rounded truncate font-medium cursor-pointer hover:opacity-80"
-                            style={{ backgroundColor: `${entry.color || TYPE_COLORS[calendarType]}20`, color: entry.color || TYPE_COLORS[calendarType] }}
-                          >
-                            {entry.start_time.slice(0, 5)} {entry.title}
-                          </div>
-                        ))}
+                        {dayEntries.slice(0, 3).map((entry) => {
+                          const color = entryColor(entry);
+                          return (
+                            <div
+                              key={entry.id}
+                              onClick={(e) => { e.stopPropagation(); openEdit(entry); }}
+                              className="text-[10px] leading-tight px-1.5 py-0.5 rounded truncate font-medium cursor-pointer hover:opacity-80"
+                              style={
+                                entry.is_all_day
+                                  ? { backgroundColor: color, color: readableOn(color) }
+                                  : { backgroundColor: `${color}20`, color }
+                              }
+                            >
+                              {entry.is_all_day ? entry.title : `${entry.start_time.slice(0, 5)} ${entry.title}`}
+                            </div>
+                          );
+                        })}
                         {dayEntries.length > 3 && (
                           <div className="text-[10px] text-muted-foreground px-1.5">+{dayEntries.length - 3} more</div>
                         )}
@@ -352,20 +414,22 @@ export function AdminInternalCalendars() {
             {/* List view below calendar */}
             <div className="mt-6 space-y-2">
               <h4 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Entries this month ({entries.length})
+                Entries this month ({visibleEntries.length})
               </h4>
-              {entries.length === 0 && (
+              {visibleEntries.length === 0 && (
                 <p className="text-sm text-muted-foreground py-4 text-center">No entries for this month. Click a day or "Add Entry" to create one.</p>
               )}
-              {entries.map((entry) => (
+              {visibleEntries.map((entry) => (
                 <Card key={entry.id} className="p-3 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-2 h-8 rounded-full shrink-0" style={{ backgroundColor: entry.color || TYPE_COLORS[calendarType] }} />
+                    <div className="w-2 h-8 rounded-full shrink-0" style={{ backgroundColor: entryColor(entry) }} />
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{entry.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {format(parseISO(entry.entry_date), "MMM d, yyyy")} · {entry.start_time.slice(0, 5)}
-                        {entry.end_time && ` – ${entry.end_time.slice(0, 5)}`} · {entry.duration_minutes}min
+                        {format(parseISO(entry.entry_date), "MMM d, yyyy")}
+                        {entry.is_all_day
+                          ? " · All day"
+                          : ` · ${entry.start_time.slice(0, 5)}${entry.end_time ? ` – ${entry.end_time.slice(0, 5)}` : ""} · ${entry.duration_minutes}min`}
                         {locationLabel(entry) && ` · ${locationLabel(entry)}`}
                       </p>
                       {entry.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{entry.notes}</p>}
@@ -390,13 +454,15 @@ export function AdminInternalCalendars() {
 
       {/* Day view — a single day laid out on a timeline */}
       <Dialog open={!!dayViewDate} onOpenChange={(o) => { if (!o) setDayViewDate(null); }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{dayViewDate ? format(dayViewDate, "EEEE, MMMM d, yyyy") : ""}</DialogTitle>
           </DialogHeader>
           {dayViewDate && (() => {
-            const dayEntries = entries.filter((e) => e.entry_date === format(dayViewDate, "yyyy-MM-dd"));
-            const laid = layoutDay(dayEntries);
+            const dayEntries = visibleEntries.filter((e) => e.entry_date === format(dayViewDate, "yyyy-MM-dd"));
+            // All-day entries sit in a band above the timeline, out of the way.
+            const allDayEntries = dayEntries.filter((e) => e.is_all_day);
+            const laid = layoutDay(dayEntries.filter((e) => !e.is_all_day));
             // Stretch the default window to fit anything outside it.
             const startH = Math.min(DEFAULT_DAY_START_H, ...laid.map((l) => Math.floor(l.startMin / 60)));
             const endH = Math.max(DEFAULT_DAY_END_H, ...laid.map((l) => Math.ceil(l.endMin / 60)));
@@ -420,7 +486,29 @@ export function AdminInternalCalendars() {
                   </Button>
                 </div>
 
-                <div className="overflow-y-auto max-h-[60vh] pr-1">
+                {allDayEntries.length > 0 && (
+                  <div className="mb-3 space-y-1 border-b border-border pb-3">
+                    {allDayEntries.map((entry) => {
+                      const color = entryColor(entry);
+                      const loc = locationLabel(entry);
+                      return (
+                        <div
+                          key={entry.id}
+                          onClick={() => { setDayViewDate(null); openEdit(entry); }}
+                          className="flex items-center gap-2 rounded-md border px-2 py-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+                          style={{ backgroundColor: `${color}20`, borderColor: `${color}55`, color }}
+                          title={`All day · ${entry.title}${loc ? ` · ${loc}` : ""}`}
+                        >
+                          <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70 shrink-0">All day</span>
+                          <span className="text-xs font-medium truncate">{entry.title}</span>
+                          {loc && <span className="ml-auto shrink-0 text-[10px] opacity-70">{loc}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="overflow-y-auto max-h-[58vh] pr-1">
                   <div className="relative" style={{ height: (endH - startH) * HOUR_PX + 8 }}>
                     {hours.map((h, i) => (
                       <div key={h} className="absolute left-0 right-0 flex items-start" style={{ top: i * HOUR_PX }}>
@@ -433,16 +521,16 @@ export function AdminInternalCalendars() {
 
                     <div className="absolute inset-y-0 left-14 right-0">
                       {laid.map(({ entry, startMin, endMin, lane, lanes }) => {
-                        const color = entry.color || TYPE_COLORS[calendarType];
+                        const color = entryColor(entry);
                         const loc = locationLabel(entry);
                         return (
                           <div
                             key={entry.id}
                             onClick={() => { setDayViewDate(null); openEdit(entry); }}
-                            className="absolute rounded-md border px-1.5 py-1 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                            className="absolute rounded-md border px-2 py-1 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                             style={{
                               top: ((startMin - dayStartMin) / 60) * HOUR_PX,
-                              height: Math.max(((endMin - startMin) / 60) * HOUR_PX - 2, 20),
+                              height: Math.max(((endMin - startMin) / 60) * HOUR_PX - 2, 22),
                               left: `calc(${(lane / lanes) * 100}% + 2px)`,
                               width: `calc(${(1 / lanes) * 100}% - 4px)`,
                               backgroundColor: `${color}20`,
@@ -451,10 +539,10 @@ export function AdminInternalCalendars() {
                             }}
                             title={`${minutesLabel(startMin)} – ${minutesLabel(endMin)} · ${entry.title}${loc ? ` · ${loc}` : ""}`}
                           >
-                            <p className="text-[10px] font-semibold leading-tight truncate">
+                            <p className="text-[11px] font-semibold leading-tight truncate">
                               {minutesLabel(startMin)} · {entry.title}
                             </p>
-                            {loc && <p className="text-[9px] leading-tight truncate opacity-80">{loc}</p>}
+                            {loc && <p className="text-[10px] leading-tight truncate opacity-80">{loc}</p>}
                           </div>
                         );
                       })}
@@ -478,20 +566,52 @@ export function AdminInternalCalendars() {
               <Label>Title</Label>
               <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Deep Tissue Massage" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Calendar</Label>
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-3.5 w-3.5 rounded-full shrink-0 border border-border"
+                  style={{ backgroundColor: groups.find((g) => g.id === form.group_id)?.color ?? TYPE_COLORS[calendarType] }}
+                />
+                <select
+                  value={form.group_id}
+                  onChange={(e) => setForm({ ...form, group_id: e.target.value })}
+                  className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Default — {TYPE_LABELS[calendarType]}</option>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer w-fit">
+              <Checkbox
+                checked={form.is_all_day}
+                onCheckedChange={(v) => setForm({ ...form, is_all_day: v === true })}
+              />
+              <span className="text-sm">All day</span>
+            </label>
+
+            <div className={cn("grid gap-3", form.is_all_day ? "grid-cols-1" : "grid-cols-2")}>
               <div className="space-y-1.5">
                 <Label>Date</Label>
                 <Input type="date" value={form.entry_date} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} />
               </div>
+              {!form.is_all_day && (
+                <div className="space-y-1.5">
+                  <Label>Start Time</Label>
+                  <Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
+                </div>
+              )}
+            </div>
+            {!form.is_all_day && (
               <div className="space-y-1.5">
-                <Label>Start Time</Label>
-                <Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
+                <Label>Duration (minutes)</Label>
+                <Input type="number" min={15} step={15} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: parseInt(e.target.value) || 60 })} />
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Duration (minutes)</Label>
-              <Input type="number" min={15} step={15} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: parseInt(e.target.value) || 60 })} />
-            </div>
+            )}
             <div className="space-y-1.5">
               <Label>Location</Label>
               <select

@@ -16,7 +16,7 @@ export type AttendeeLabel = {
 };
 
 /** Preset swatches — same spirit as the Acuity label colors. */
-const PALETTE = [
+export const PALETTE = [
   "#38bdf8", "#f59e0b", "#1f2937", "#fb923c", "#22c55e",
   "#ef4444", "#a855f7", "#0ea5e9", "#64748b", "#ec4899",
 ];

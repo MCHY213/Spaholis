@@ -22,7 +22,9 @@ export type Database = {
           duration_minutes: number
           end_time: string | null
           entry_date: string
+          group_id: string | null
           id: string
+          is_all_day: boolean
           is_offsite: boolean
           notes: string | null
           offsite_location: string | null
@@ -38,7 +40,9 @@ export type Database = {
           duration_minutes?: number
           end_time?: string | null
           entry_date: string
+          group_id?: string | null
           id?: string
+          is_all_day?: boolean
           is_offsite?: boolean
           notes?: string | null
           offsite_location?: string | null
@@ -54,7 +58,9 @@ export type Database = {
           duration_minutes?: number
           end_time?: string | null
           entry_date?: string
+          group_id?: string | null
           id?: string
+          is_all_day?: boolean
           is_offsite?: boolean
           notes?: string | null
           offsite_location?: string | null
@@ -64,6 +70,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "admin_calendar_entries_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "admin_calendar_entries_room_id_fkey"
             columns: ["room_id"]
@@ -449,6 +462,33 @@ export type Database = {
           open_time?: string
           updated_at?: string
           weekday?: number
+        }
+        Relationships: []
+      }
+      calendar_groups: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
         }
         Relationships: []
       }

@@ -23,6 +23,8 @@ const entry = (start_time: string, duration_minutes: number, title = `e${++seq}`
   room_id: null,
   is_offsite: false,
   offsite_location: null,
+  group_id: null,
+  is_all_day: false,
 });
 
 const byTitle = (laid: ReturnType<typeof layoutDay>, title: string) =>
