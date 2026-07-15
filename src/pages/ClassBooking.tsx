@@ -381,10 +381,12 @@ const ClassBookingPage = () => {
                     {tokenEligible && tokenOffering && needsPayment && (
                       <div className="max-w-md mb-6 rounded-2xl border border-spa-sage/40 bg-spa-sage/10 p-4">
                         <p className="flex items-center gap-2 font-body text-sm font-semibold text-foreground">
-                          <Check className="h-4 w-4 text-spa-sage" /> Membership recognized
+                          <Check className="h-4 w-4 text-spa-sage" />
+                          {tokenOffering.guest_name ? `Welcome back, ${tokenOffering.guest_name}` : "Membership recognized"}
                         </p>
                         <p className="mt-1 text-sm font-body text-muted-foreground">
                           <span className="font-medium text-foreground">{tokenOffering.name_snapshot}</span>
+                          {tokenOffering.code ? ` (code ${tokenOffering.code})` : ""}
                           {" · "}
                           {tokenOffering.is_unlimited ? "Unlimited" : `${tokenOffering.credits_remaining} credits left`}
                           {" — "}this class is <span className="font-medium text-foreground">free</span> for you.

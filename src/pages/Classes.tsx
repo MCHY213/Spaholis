@@ -46,7 +46,9 @@ const ClassesPage = () => {
           <div className="pt-24 pb-4 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto flex items-center justify-center gap-2 text-center">
             <Check className="h-4 w-4 shrink-0" />
             <p className="font-body text-sm">
-              <span className="font-semibold">{tokenOffering.name_snapshot}</span> is active
+              {tokenOffering.guest_name ? <>Welcome, <span className="font-semibold">{tokenOffering.guest_name}</span>! </> : null}
+              <span className="font-semibold">{tokenOffering.name_snapshot}</span>
+              {tokenOffering.code ? <> (code {tokenOffering.code})</> : null} is active
               {tokenOffering.is_unlimited ? "" : ` · ${tokenOffering.credits_remaining} credits left`}. Pick any class below to book it free.
             </p>
           </div>

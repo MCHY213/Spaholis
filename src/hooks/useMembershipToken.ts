@@ -18,6 +18,7 @@ export type TokenOffering = {
   id: string;
   offering_id: string;
   name_snapshot: string;
+  code: string | null;
   type: string;
   is_unlimited: boolean;
   credits_remaining: number | null;
