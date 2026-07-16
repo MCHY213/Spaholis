@@ -2397,7 +2397,7 @@ export type Database = {
       search_known_contacts: { Args: { _q: string }; Returns: Json }
     }
     Enums: {
-      app_role: "super_admin" | "manager" | "client"
+      app_role: "super_admin" | "manager" | "client" | "coordinator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2525,7 +2525,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["super_admin", "manager", "client"],
+      app_role: ["super_admin", "manager", "client", "coordinator"],
     },
   },
 } as const

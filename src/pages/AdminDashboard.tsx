@@ -72,10 +72,17 @@ const sidebarLinks = [
   { label: "Settings", icon: Settings, id: "settings" },
 ];
 
+// Sections a coordinator (limited staff role) may open. Everything else in the
+// sidebar is hidden for them, and the render below refuses to mount it even if
+// the tab is forced — the database RLS is the real gate, this is just tidy UI.
+const COORDINATOR_TABS = ["calendars", "appointments"];
+
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  // True for a coordinator who is NOT also a full admin.
+  const [isCoordinator, setIsCoordinator] = useState(false);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -91,14 +98,22 @@ const AdminDashboard = () => {
         .eq("user_id", user.id)
         .then(({ data }) => {
           const roles = (data ?? []).map((r) => r.role);
-          if (roles.includes("super_admin") || roles.includes("manager")) {
-            setIsAdmin(true);
-          } else {
-            setIsAdmin(false);
-          }
+          const fullAdmin = roles.includes("super_admin") || roles.includes("manager");
+          const coordinatorOnly = !fullAdmin && roles.includes("coordinator");
+          setIsAdmin(fullAdmin || coordinatorOnly);
+          setIsCoordinator(coordinatorOnly);
+          // Land a coordinator on the treatments calendar, not the overview
+          // (which they can't see anyway).
+          if (coordinatorOnly) setActiveTab("calendars");
         });
     }
   }, [user, loading, navigate]);
+
+  const visibleLinks = isCoordinator
+    ? sidebarLinks.filter((l) => COORDINATOR_TABS.includes(l.id))
+    : sidebarLinks;
+  // Belt and suspenders: a coordinator can never render a restricted section.
+  const canRender = (id: string) => !isCoordinator || COORDINATOR_TABS.includes(id);
 
   if (loading || isAdmin === null) {
     return (
@@ -135,7 +150,7 @@ const AdminDashboard = () => {
         </div>
         <p className="px-6 text-xs font-body font-semibold uppercase tracking-wider text-muted-foreground mb-4">Admin Panel</p>
         <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-          {sidebarLinks.map((link) => (
+          {visibleLinks.map((link) => (
             <button
               key={link.id}
               onClick={() => { setActiveTab(link.id); setSidebarOpen(false); }}
@@ -162,8 +177,8 @@ const AdminDashboard = () => {
           </Button>
         </header>
         <div className="p-4 sm:p-6 lg:p-8">
-          {activeTab === "overview" && <OverviewView />}
-          {activeTab === "appointments" && <><AdminCalendarView /><div className="mt-6"><AppointmentsView /></div></>}
+          {activeTab === "overview" && canRender("overview") && <OverviewView />}
+          {activeTab === "appointments" && canRender("appointments") && <><AdminCalendarView /><div className="mt-6"><AppointmentsView /></div></>}
           {activeTab === "payment-issues" && <AdminPaymentIssues />}
           {activeTab === "bac-verifications" && <AdminBacVerifications />}
           {activeTab === "bac-links" && <AdminBacLinks />}
@@ -178,7 +193,7 @@ const AdminDashboard = () => {
           {activeTab === "loyalty" && <AdminLoyaltyManager />}
           {activeTab === "coupons" && <AdminCouponsManager />}
           {activeTab === "rooms" && <AdminRoomsManager />}
-          {activeTab === "calendars" && <AdminInternalCalendars />}
+          {activeTab === "calendars" && <AdminInternalCalendars restrictToTreatment={isCoordinator} />}
           {activeTab === "wellness" && <AdminWellnessOrganizer />}
           {activeTab === "spa-packages" && <AdminSpaPackagesManager />}
           {activeTab === "custom-retreats" && <AdminCustomRetreats />}

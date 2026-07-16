@@ -227,8 +227,12 @@ const emptyForm = {
   recurrence_until: "",
 };
 
-export function AdminInternalCalendars() {
+export function AdminInternalCalendars({ restrictToTreatment = false }: { restrictToTreatment?: boolean } = {}) {
   const [calendarType, setCalendarType] = useState<CalendarType>("treatment");
+  // A coordinator only ever sees the treatments calendar.
+  const visibleTypes = (Object.keys(TYPE_LABELS) as CalendarType[]).filter(
+    (t) => !restrictToTreatment || t === "treatment",
+  );
   const [currentDate, setCurrentDate] = useState(new Date());
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -565,13 +569,16 @@ export function AdminInternalCalendars() {
       </div>
 
       <Tabs value={calendarType} onValueChange={(v) => setCalendarType(v as CalendarType)}>
-        <TabsList>
-          {(Object.keys(TYPE_LABELS) as CalendarType[]).map((t) => (
-            <TabsTrigger key={t} value={t} className="capitalize">{TYPE_LABELS[t]}</TabsTrigger>
-          ))}
-        </TabsList>
+        {/* One calendar type = no tab strip needed (coordinator view). */}
+        {visibleTypes.length > 1 && (
+          <TabsList>
+            {visibleTypes.map((t) => (
+              <TabsTrigger key={t} value={t} className="capitalize">{TYPE_LABELS[t]}</TabsTrigger>
+            ))}
+          </TabsList>
+        )}
 
-        {(Object.keys(TYPE_LABELS) as CalendarType[]).map((t) => (
+        {visibleTypes.map((t) => (
           <TabsContent key={t} value={t} className="mt-4">
             {t === "class" ? (
               <AdminClassCalendarWithAttendees />
