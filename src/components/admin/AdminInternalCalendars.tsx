@@ -45,6 +45,19 @@ export interface CalendarEntry {
   series_id: string | null;
   recurrence: string;
   recurrence_until: string | null;
+  /** Present only on rows derived from a real website booking (read-only). */
+  booking?: BookingRef;
+}
+
+/** The real appointment behind a booking-derived calendar row. */
+interface BookingRef {
+  id: string;
+  status: string;
+  guest_name: string | null;
+  guest_email: string | null;
+  guest_phone: string | null;
+  service_title: string | null;
+  total_price: number | null;
 }
 
 interface Room {
@@ -54,6 +67,18 @@ interface Room {
 
 /** Form value for the location select: "" = unset, "offsite", or a room id. */
 const OFFSITE = "offsite";
+
+/** Website bookings are colored by status so their state reads at a glance. */
+const BOOKING_STATUS_COLOR: Record<string, string> = {
+  paid: "#10b981",
+  confirmed: "#0ea5e9",
+  completed: "#15803d",
+  pending: "#f59e0b",
+  pending_payment: "#f59e0b",
+};
+const bookingColor = (status: string) => BOOKING_STATUS_COLOR[status] ?? "#f59e0b";
+/** Real appointments to surface on the treatments calendar (skip dead ones). */
+const BOOKING_HIDDEN_STATUSES = new Set(["cancelled", "payment_failed"]);
 
 /**
  * Day view. The default window is the spa's working day (9–7); entries outside
@@ -360,6 +385,54 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
 
   useEffect(() => { loadEntries(); }, [loadEntries]);
 
+  // Real website bookings, shown read-only alongside the manual entries — only
+  // on the Treatments calendar (the day-to-day one), never Retreats/Classes.
+  const [bookingEntries, setBookingEntries] = useState<CalendarEntry[]>([]);
+  const loadBookings = useCallback(async () => {
+    if (calendarType !== "treatment") { setBookingEntries([]); return; }
+    const start = format(startOfWeek(startOfMonth(currentDate)), "yyyy-MM-dd");
+    const end = format(endOfWeek(endOfMonth(currentDate)), "yyyy-MM-dd");
+    const { data } = await supabase
+      .from("bookings")
+      .select("id, guest_name, guest_email, guest_phone, booking_date, booking_time, status, room_id, total_price, services(title, duration_minutes, type)")
+      .gte("booking_date", start)
+      .lte("booking_date", end);
+    const mapped: CalendarEntry[] = ((data as any[]) ?? [])
+      // Treatment-type services only (packages included); skip dead bookings.
+      .filter((b) => b.services?.type === "treatment" && !BOOKING_HIDDEN_STATUSES.has(b.status))
+      .map((b) => ({
+        id: `booking:${b.id}`,
+        calendar_type: "treatment",
+        title: `${b.guest_name ?? "Guest"} — ${b.services?.title ?? "Treatment"}`,
+        entry_date: b.booking_date,
+        end_date: null,
+        start_time: String(b.booking_time ?? "09:00").slice(0, 5),
+        end_time: null,
+        duration_minutes: b.services?.duration_minutes ?? 60,
+        notes: null,
+        color: bookingColor(b.status),
+        room_id: b.room_id,
+        is_offsite: false,
+        offsite_location: null,
+        group_id: null,
+        is_all_day: false,
+        series_id: null,
+        recurrence: "none",
+        recurrence_until: null,
+        booking: {
+          id: b.id,
+          status: b.status,
+          guest_name: b.guest_name,
+          guest_email: b.guest_email,
+          guest_phone: b.guest_phone,
+          service_title: b.services?.title ?? null,
+          total_price: b.total_price,
+        },
+      }));
+    setBookingEntries(mapped);
+  }, [calendarType, currentDate]);
+  useEffect(() => { loadBookings(); }, [loadBookings]);
+
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(currentDate)),
     end: endOfWeek(endOfMonth(currentDate)),
@@ -373,6 +446,10 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
 
   /** Entries on hidden sub-calendars drop out; ungrouped ones always show. */
   const visibleEntries = entries.filter((e) => !e.group_id || !hiddenGroups.has(e.group_id));
+
+  /** What the calendar grid + day view render: manual entries AND website
+   *  bookings. The management list below stays manual-only. */
+  const calendarItems = [...visibleEntries, ...bookingEntries];
 
   /** yyyy-MM-dd strings compare correctly, so a plain range check is enough. */
   const coversDay = (e: CalendarEntry, dayKey: string) =>
@@ -390,6 +467,15 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
     }
     if (entry.room_id) return rooms.find((r) => r.id === entry.room_id)?.name ?? null;
     return null;
+  };
+
+  // A website booking is read-only here; a manual entry opens the edit form.
+  const [bookingDetail, setBookingDetail] = useState<CalendarEntry | null>(null);
+  const openItem = (entry: CalendarEntry, fromDay?: Date | null) => {
+    if (entry.booking) { setDayViewDate(null); setBookingDetail(entry); return; }
+    if (fromDay !== undefined) setReturnToDay(fromDay);
+    setDayViewDate(null);
+    openEdit(entry);
   };
 
   /** Close the entry form and drop back into the day it was opened from. */
@@ -617,7 +703,7 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
               <div className="grid grid-cols-7">
                 {days.map((day) => {
                   const dayKey = format(day, "yyyy-MM-dd");
-                  const dayEntries = visibleEntries
+                  const dayEntries = calendarItems
                     .filter((e) => coversDay(e, dayKey))
                     // Banners read as headers for the day, so float them up.
                     .sort((a, b) => Number(isBanner(b)) - Number(isBanner(a)));
@@ -646,15 +732,19 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
                           return (
                             <div
                               key={entry.id}
-                              onClick={(e) => { e.stopPropagation(); openEdit(entry); }}
-                              className="text-[10px] leading-tight px-1.5 py-0.5 rounded truncate font-medium cursor-pointer hover:opacity-80"
+                              onClick={(e) => { e.stopPropagation(); openItem(entry); }}
+                              className={cn(
+                                "text-[10px] leading-tight px-1.5 py-0.5 rounded truncate font-medium cursor-pointer hover:opacity-80",
+                                entry.booking && "ring-1 ring-inset",
+                              )}
                               style={
                                 isBanner(entry)
                                   ? { backgroundColor: color, color: readableOn(color) }
                                   : { backgroundColor: `${color}20`, color }
                               }
+                              title={entry.booking ? "Website booking" : undefined}
                             >
-                              {isBanner(entry) ? entry.title : `${entry.start_time.slice(0, 5)} ${entry.title}`}
+                              {entry.booking ? "🌐 " : ""}{isBanner(entry) ? entry.title : `${entry.start_time.slice(0, 5)} ${entry.title}`}
                             </div>
                           );
                         })}
@@ -732,7 +822,7 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
           </DialogHeader>
           {dayViewDate && (() => {
             const dayKey = format(dayViewDate, "yyyy-MM-dd");
-            const dayEntries = visibleEntries.filter((e) => coversDay(e, dayKey));
+            const dayEntries = calendarItems.filter((e) => coversDay(e, dayKey));
             // All-day and multi-day entries sit in a band above the timeline,
             // out of the way of the hour-by-hour schedule.
             const allDayEntries = dayEntries.filter(isBanner);
@@ -776,7 +866,7 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
                       return (
                         <div
                           key={entry.id}
-                          onClick={() => { setReturnToDay(dayViewDate); setDayViewDate(null); openEdit(entry); }}
+                          onClick={() => openItem(entry, dayViewDate)}
                           className="flex items-center gap-2 rounded-md border px-2 py-1.5 cursor-pointer hover:opacity-80 transition-opacity"
                           style={{ backgroundColor: `${color}20`, borderColor: `${color}55`, color }}
                           title={`All day · ${entry.title}${loc ? ` · ${loc}` : ""}`}
@@ -814,8 +904,11 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
                         return (
                           <div
                             key={entry.id}
-                            onClick={() => { setReturnToDay(dayViewDate); setDayViewDate(null); openEdit(entry); }}
-                            className="absolute rounded-md border px-2 py-1 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => openItem(entry, dayViewDate)}
+                            className={cn(
+                              "absolute rounded-md border px-2 py-1 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity",
+                              entry.booking && "ring-1 ring-inset",
+                            )}
                             style={{
                               top: ((startMin - dayStartMin) / 60) * hourPx,
                               height: Math.max(((endMin - startMin) / 60) * hourPx - 2, 22),
@@ -825,10 +918,10 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
                               borderColor: `${color}55`,
                               color,
                             }}
-                            title={`${rangeLabel(startMin, endMin)} · ${entry.title}${loc ? ` · ${loc}` : ""}`}
+                            title={`${entry.booking ? "Website booking · " : ""}${rangeLabel(startMin, endMin)} · ${entry.title}${loc ? ` · ${loc}` : ""}`}
                           >
                             <p className="text-[13px] font-semibold leading-snug truncate">
-                              {rangeLabel(startMin, endMin)} · {entry.title}
+                              {entry.booking ? "🌐 " : ""}{rangeLabel(startMin, endMin)} · {entry.title}
                             </p>
                             {loc && <p className="text-[11px] leading-snug truncate opacity-80">{loc}</p>}
                           </div>
@@ -840,6 +933,62 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
               </div>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Website booking — read-only detail (real appointment, not a manual entry) */}
+      <Dialog open={!!bookingDetail} onOpenChange={(o) => { if (!o) setBookingDetail(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              🌐 Website booking
+            </DialogTitle>
+          </DialogHeader>
+          {bookingDetail?.booking && (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Guest</span>
+                <span className="font-medium text-right">{bookingDetail.booking.guest_name || "—"}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Treatment</span>
+                <span className="font-medium text-right">{bookingDetail.booking.service_title || "—"}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">When</span>
+                <span className="font-medium text-right">
+                  {format(parseISO(bookingDetail.entry_date), "EEE, MMM d")} · {minutesLabel(toMinutes(bookingDetail.start_time))}
+                </span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Room</span>
+                <span className="font-medium text-right">{rooms.find((r) => r.id === bookingDetail.room_id)?.name || "—"}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-muted-foreground">Status</span>
+                <span className="font-medium text-right capitalize">{bookingDetail.booking.status.replace("_", " ")}</span>
+              </div>
+              {bookingDetail.booking.total_price != null && (
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Total</span>
+                  <span className="font-medium text-right">${Number(bookingDetail.booking.total_price).toFixed(2)}</span>
+                </div>
+              )}
+              {(bookingDetail.booking.guest_email || bookingDetail.booking.guest_phone) && (
+                <div className="border-t border-border pt-2 mt-2 space-y-1">
+                  {bookingDetail.booking.guest_email && (
+                    <p className="text-xs text-muted-foreground break-all">{bookingDetail.booking.guest_email}</p>
+                  )}
+                  {bookingDetail.booking.guest_phone && (
+                    <p className="text-xs text-muted-foreground">{bookingDetail.booking.guest_phone}</p>
+                  )}
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground pt-1">
+                Booked on the website — manage it under Appointments.
+              </p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
