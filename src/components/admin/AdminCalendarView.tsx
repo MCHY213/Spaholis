@@ -111,6 +111,24 @@ export function AdminCalendarView() {
         onOpenChange={setEditOpen}
         onSaved={loadBookings}
         services={services}
+        onDuplicated={async (newId) => {
+          const { data } = await supabase
+            .from("bookings")
+            .select("*, services(title, duration_minutes, category, type)")
+            .eq("id", newId)
+            .maybeSingle();
+          if (!data) return;
+          const b: any = data;
+          setSelectedBooking({
+            id: b.id, guest_name: b.guest_name, guest_email: b.guest_email, guest_phone: b.guest_phone,
+            booking_date: b.booking_date, booking_time: b.booking_time, status: b.status, total_price: b.total_price,
+            notes: b.notes, service_id: b.service_id, service_title: b.services?.title ?? null,
+            service_category: b.services?.category ?? null, service_type: b.services?.type ?? null,
+            duration_minutes: b.services?.duration_minutes ?? 60, intake_form: b.intake_form,
+            card_authorization: b.card_authorization, staff_id: b.staff_id, room_id: b.room_id, payment_id: b.payment_id,
+          });
+          setEditOpen(true);
+        }}
       />
 
       <NewBookingModal

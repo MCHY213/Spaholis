@@ -973,6 +973,7 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
         onOpenChange={setBookingEditOpen}
         onSaved={() => { loadBookings(); loadEntries(); }}
         services={servicesForEdit}
+        onDuplicated={(newId) => openBookingForEdit(newId)}
       />
 
       {/* Add/Edit Modal */}

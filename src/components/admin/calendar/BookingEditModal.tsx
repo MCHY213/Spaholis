@@ -7,11 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, ClipboardList, Pencil, Trash2, CreditCard, Eye, EyeOff } from "lucide-react";
+import { CalendarDays, ClipboardList, Pencil, Trash2, CreditCard, Eye, EyeOff, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { CalendarBooking } from "./calendarUtils";
 import { bodyZoneNames, bodyZoneExtraLabel } from "@/components/booking/BodyZoneSelector";
+import { spaLocalToInstant } from "@/lib/businessHours";
 
 type CardOnFile = { card_brand: string | null; card_last4: string | null; card_expiry: string | null; cardholder_name: string | null };
 
@@ -98,9 +99,11 @@ interface BookingEditModalProps {
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
   services: { id: string; title: string; category: string; type: string | null; duration_minutes: number; price: number }[];
+  /** Called with the new booking's id after Duplicate, so the caller can open it. */
+  onDuplicated?: (newBookingId: string) => void;
 }
 
-export function BookingEditModal({ booking, open, onOpenChange, onSaved, services }: BookingEditModalProps) {
+export function BookingEditModal({ booking, open, onOpenChange, onSaved, services, onDuplicated }: BookingEditModalProps) {
   const [form, setForm] = useState({
     guest_name: "",
     guest_email: "",
@@ -111,8 +114,15 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
     status: "pending",
     notes: "",
     total_price: "",
+    room_id: "",
+    duration: "",
   });
   const [saving, setSaving] = useState(false);
+  const [rooms, setRooms] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    supabase.from("rooms").select("id, name").eq("is_active", true).order("name")
+      .then(({ data }) => setRooms(data ?? []));
+  }, []);
   // Card on file — masked by default; the full number is fetched on demand
   // through an admin-only, audited RPC.
   const [card, setCard] = useState<CardOnFile | null>(null);
@@ -159,6 +169,8 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
         status: booking.status,
         notes: booking.notes || "",
         total_price: booking.total_price?.toString() || "",
+        room_id: booking.room_id || "",
+        duration: String(booking.duration_minutes || 60),
       });
     }
   }, [booking]);
@@ -169,6 +181,18 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
     if (!booking) return;
     setSaving(true);
     const selectedService = services.find((s) => s.id === form.service_id);
+    // Keep the timestamptz slot in sync with the edited date/time/duration, so
+    // website availability and the calendar reflect a reschedule correctly.
+    let start_time: string | null = null;
+    let end_time: string | null = null;
+    const dur = parseInt(form.duration) || booking.duration_minutes || 60;
+    if (form.booking_date && form.booking_time) {
+      const [y, m, d] = form.booking_date.split("-").map(Number);
+      const [hh, mm] = form.booking_time.split(":").map(Number);
+      const start = spaLocalToInstant(y, m - 1, d, hh, mm);
+      start_time = start.toISOString();
+      end_time = new Date(start.getTime() + dur * 60000).toISOString();
+    }
     const { error } = await supabase
       .from("bookings")
       .update({
@@ -181,15 +205,36 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
         status: form.status,
         notes: form.notes || null,
         total_price: form.total_price ? parseFloat(form.total_price) : selectedService?.price || null,
+        room_id: form.room_id || null,
+        start_time,
+        end_time,
       })
       .eq("id", booking.id);
     setSaving(false);
     if (error) {
-      toast.error("Failed to update booking");
+      toast.error(error.message || "Failed to update booking");
     } else {
       toast.success("Booking updated");
       onOpenChange(false);
       onSaved();
+    }
+  }
+
+  async function handleDuplicate() {
+    if (!booking) return;
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.rpc("duplicate_booking", { _booking_id: booking.id });
+      if (error) throw error;
+      const newId = data as string;
+      toast.success("Booking duplicated — set the new date, time and room.");
+      onOpenChange(false);
+      onSaved();
+      if (newId && onDuplicated) onDuplicated(newId);
+    } catch (e: any) {
+      toast.error(e.message ?? "Could not duplicate booking");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -275,6 +320,24 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
                   <Input type="number" value={form.total_price} onChange={(e) => update("total_price", e.target.value)} className="h-9 text-sm" />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Room</Label>
+                  <Select value={form.room_id || "none"} onValueChange={(v) => update("room_id", v === "none" ? "" : v)}>
+                    <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="No room" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No room / off-site</SelectItem>
+                      {rooms.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Duration (min)</Label>
+                  <Input type="number" min={15} step={15} value={form.duration} onChange={(e) => update("duration", e.target.value)} className="h-9 text-sm" />
+                </div>
+              </div>
 
               {card && (
                 <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
@@ -331,9 +394,14 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
           </Tabs>
         </ScrollArea>
         <DialogFooter className="flex items-center justify-between gap-2">
-          <Button variant="destructive" size="sm" onClick={handleDelete} className="gap-1">
-            <Trash2 className="h-3.5 w-3.5" /> Delete
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="destructive" size="sm" onClick={handleDelete} className="gap-1">
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleDuplicate} disabled={saving} className="gap-1" title="Create a copy for the same guest">
+              <Copy className="h-3.5 w-3.5" /> Duplicate
+            </Button>
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button size="sm" onClick={handleSave} disabled={saving}>
