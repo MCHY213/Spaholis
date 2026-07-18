@@ -1,177 +1,111 @@
 // deno-lint-ignore-file no-explicit-any
 // Edge function: paypal-capture-order
 //
-// Captures a PayPal order created by paypal-create-order and finalizes the
-// matching studio-class booking.
-//
-// Flow:
-//  1. Look up the PENDING class_bookings row by paypal_order_id.
-//  2. Call PayPal /v2/checkout/orders/{id}/capture.
-//  3. On COMPLETED: mark booking `status='booked'`, `payment_status='paid'`,
-//     `payment_id` = PayPal capture id, then trigger the booking notification.
-//  4. On failure: mark booking `status='cancelled'`, `payment_status='failed'`
-//     so the seat is released and reconciliation is easy.
-//
-// The frontend calls this immediately after the PayPal JS SDK reports the
-// buyer approved the order. We NEVER trust the client to say "paid" —
-// PayPal's capture response is the source of truth.
-
+// Captures an approved PayPal order, verifies with PayPal that it COMPLETED for
+// the exact amount we stored, then fulfils: confirms the class booking (with a
+// spot decrement + email) or grants the offering (membership / pass / drop-in).
+// Idempotent — a replayed capture returns the already-fulfilled result.
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { z } from "npm:zod@3.25.76";
-import { getPayPalAccessToken, paypalFetch } from "../_shared/paypal.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+const json = (b: any, s = 200) =>
+  new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-const BodySchema = z.object({
-  orderId: z.string().trim().min(4).max(64),
-});
+const PP_BASE = (Deno.env.get("PAYPAL_MODE") ?? "live") === "sandbox"
+  ? "https://api-m.sandbox.paypal.com"
+  : "https://api-m.paypal.com";
 
-const json = (body: Record<string, unknown>, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+async function ppToken(): Promise<string> {
+  const id = Deno.env.get("PAYPAL_CLIENT_ID");
+  const secret = Deno.env.get("PAYPAL_SECRET");
+  if (!id || !secret) throw new Error("paypal_not_configured");
+  const res = await fetch(`${PP_BASE}/v1/oauth2/token`, {
+    method: "POST",
+    headers: { Authorization: "Basic " + btoa(`${id}:${secret}`), "Content-Type": "application/x-www-form-urlencoded" },
+    body: "grant_type=client_credentials",
   });
-
-function extractCaptureId(captureBody: any): string | null {
-  try {
-    const pu = captureBody?.purchase_units?.[0];
-    const cap = pu?.payments?.captures?.[0];
-    return cap?.id ? String(cap.id) : null;
-  } catch {
-    return null;
-  }
-}
-
-function extractCaptureStatus(captureBody: any): string | null {
-  try {
-    const pu = captureBody?.purchase_units?.[0];
-    const cap = pu?.payments?.captures?.[0];
-    return cap?.status ? String(cap.status) : (captureBody?.status ? String(captureBody.status) : null);
-  } catch {
-    return null;
-  }
+  if (!res.ok) throw new Error("paypal_auth_failed");
+  return (await res.json()).access_token;
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ ok: false, reason: "method_not_allowed" }, 405);
 
-  let parsed;
-  try {
-    parsed = BodySchema.safeParse(await req.json());
-  } catch {
-    return json({ ok: false, reason: "invalid_json" }, 400);
-  }
-  if (!parsed.success) {
-    return json({ ok: false, reason: "invalid_body", errors: parsed.error.flatten().fieldErrors }, 400);
-  }
-  const { orderId } = parsed.data;
+  let orderId: string | undefined;
+  try { orderId = (await req.json())?.orderId; } catch { return json({ ok: false, reason: "invalid_json" }, 400); }
+  if (!orderId) return json({ ok: false, reason: "missing_order" }, 400);
 
-  const admin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+  const { data: rec } = await admin.from("paypal_orders").select("*").eq("order_id", orderId).maybeSingle();
+  if (!rec) return json({ ok: false, reason: "order_not_found" }, 404);
+  if (rec.status === "captured") {
+    // Idempotent replay — already fulfilled.
+    return json({ ok: true, kind: rec.kind, bookingId: rec.class_booking_id, userOfferingId: rec.user_offering_id, replay: true });
+  }
 
   try {
-    // 1. Locate the pending booking for this PayPal order.
-    const { data: booking, error: bookingErr } = await admin
-      .from("class_bookings")
-      .select("id, payment_status, status, paypal_order_id, payment_id, schedule_id, guest_email")
-      .eq("paypal_order_id", orderId)
-      .maybeSingle();
-
-    if (bookingErr) throw bookingErr;
-    if (!booking) return json({ ok: false, reason: "booking_not_found" }, 404);
-
-    // Idempotency: if already paid, return success with the stored capture id.
-    if (booking.payment_status === "paid" && booking.payment_id) {
-      return json({
-        ok: true,
-        bookingId: booking.id,
-        captureId: booking.payment_id,
-        alreadyCaptured: true,
-      });
-    }
-
-    // 2. Capture the order at PayPal.
-    const accessToken = await getPayPalAccessToken();
-    const captureRes = await paypalFetch(`/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {
+    const token = await ppToken();
+    const capRes = await fetch(`${PP_BASE}/v2/checkout/orders/${orderId}/capture`, {
       method: "POST",
-      accessToken,
-      // Body must be empty (or {}) for capture.
-      body: JSON.stringify({}),
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     });
+    const cap = await capRes.json();
+    const capture = cap?.purchase_units?.[0]?.payments?.captures?.[0];
+    const capturedAmount = Number(capture?.amount?.value ?? 0);
+    const capId: string | null = capture?.id ?? cap?.id ?? null;
 
-    const captureStatus = extractCaptureStatus(captureRes.body);
-    const captureId = extractCaptureId(captureRes.body);
-    const success =
-      captureRes.status >= 200 &&
-      captureRes.status < 300 &&
-      captureStatus === "COMPLETED" &&
-      !!captureId;
-
-    if (!success) {
-      // Mark booking as failed so the seat is released.
-      await admin
-        .from("class_bookings")
-        .update({ status: "cancelled", payment_status: "failed" })
-        .eq("id", booking.id);
-
-      console.error("[paypal-capture-order] capture failed", {
-        orderId,
-        status: captureRes.status,
-        capture_status: captureStatus,
-        raw: captureRes.raw?.slice(0, 2000),
-      });
-      return json({
-        ok: false,
-        reason: "capture_failed",
-        message: `PayPal capture did not complete (${captureRes.status}, status=${captureStatus ?? "unknown"})`,
-        details: captureRes.body,
-      }, 502);
+    if (cap?.status !== "COMPLETED" || Math.abs(capturedAmount - Number(rec.amount)) > 0.01) {
+      await admin.from("paypal_orders").update({ status: "failed", updated_at: new Date().toISOString() }).eq("order_id", orderId);
+      console.error("[paypal-capture-order] not completed / amount mismatch", { status: cap?.status, capturedAmount, expected: rec.amount });
+      return json({ ok: false, reason: "payment_not_completed" }, 402);
     }
 
-    // 3. Finalize the booking.
-    const { error: updateErr } = await admin
-      .from("class_bookings")
-      .update({
-        status: "booked",
-        payment_status: "paid",
-        payment_id: captureId,
-      })
-      .eq("id", booking.id);
-    if (updateErr) throw Object.assign(updateErr, { code: "BOOKING_UPDATE_FAILED" });
+    const t = rec.target ?? {};
 
-    // 4. Fire-and-forget notification (never block the capture response).
-    try {
-      await admin.functions.invoke("send-booking-notification", {
-        body: { classBookingId: booking.id },
+    if (rec.kind === "class") {
+      // Claim a spot atomically; if the class just filled, still honour the paid
+      // booking (staff can reconcile) but note it.
+      const { data: remaining } = await admin.rpc("decrement_class_spot", { _schedule_id: t.schedule_id });
+      const overbooked = remaining === null || remaining === undefined;
+
+      const bookingId = crypto.randomUUID();
+      const { error: insErr } = await admin.from("class_bookings").insert({
+        id: bookingId, schedule_id: t.schedule_id,
+        guest_name: t.guest_name, guest_email: t.guest_email, guest_phone: t.guest_phone || null,
+        status: "confirmed", payment_status: "paid", payment_method: "paypal",
+        coupon_code: t.coupon_code || null, total_price: rec.amount,
       });
-    } catch (e) {
-      console.error("[paypal-capture-order] notification invoke failed", e);
+      if (insErr) { if (!overbooked) await admin.rpc("increment_class_spot", { _schedule_id: t.schedule_id }); throw insErr; }
+
+      await admin.from("paypal_orders").update({ status: "captured", class_booking_id: bookingId, updated_at: new Date().toISOString() }).eq("order_id", orderId);
+      try { await admin.functions.invoke("send-booking-notification", { body: { classBookingId: bookingId } }); } catch (e) { console.error("[paypal-capture-order] notify failed", e); }
+      return json({ ok: true, kind: "class", bookingId, overbooked });
     }
 
-    return json({
-      ok: true,
-      bookingId: booking.id,
-      captureId,
-      status: "booked",
-    });
+    // offering
+    const { data: off } = await admin.from("offerings").select("*").eq("id", t.offering_id).maybeSingle();
+    if (!off) return json({ ok: false, reason: "offering_gone" }, 404);
+    const expires_at = (off as any).type === "membership" && (off as any).duration_days
+      ? new Date(Date.now() + (off as any).duration_days * 86400000).toISOString() : null;
+    const { data: uo, error: uoErr } = await admin.from("user_offerings").insert({
+      user_id: t.user_id ?? null,
+      offering_id: (off as any).id, type: (off as any).type, name_snapshot: (off as any).name,
+      price_paid: (off as any).price, is_unlimited: (off as any).is_unlimited,
+      credits_total: (off as any).credits, credits_remaining: (off as any).credits,
+      expires_at, status: "active", source: "purchase", payment_id: capId,
+    }).select("id").single();
+    if (uoErr) throw uoErr;
+
+    await admin.from("paypal_orders").update({ status: "captured", user_offering_id: uo.id, updated_at: new Date().toISOString() }).eq("order_id", orderId);
+    return json({ ok: true, kind: "offering", userOfferingId: uo.id });
   } catch (err) {
-    console.error("[paypal-capture-order] failed", {
-      message: (err as Error).message,
-      stack: (err as Error).stack,
-      code: (err as any)?.code,
-      orderId,
-    });
-    return json({
-      ok: false,
-      reason: "capture_error",
-      message: (err as Error).message,
-    }, 500);
+    console.error("[paypal-capture-order] failed", { message: (err as Error).message });
+    return json({ ok: false, reason: "capture_failed", message: (err as Error).message }, 500);
   }
 });

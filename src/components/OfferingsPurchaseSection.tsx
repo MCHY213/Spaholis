@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ContactToPayNotice } from "@/components/booking/ContactToPayNotice";
+import { PayPalCheckout } from "@/components/payments/PayPalCheckout";
 import {
   useOfferings,
-  purchaseOffering,
   useInvalidateOfferings,
   type Offering,
   type OfferingType,
@@ -113,26 +112,13 @@ export function OfferingsPurchaseSection({ defaultTab = "all", redirectAfterPurc
   const dropIns = offerings.filter((o) => o.type === "drop_in");
 
   const handleBuy = (o: Offering) => {
-    if (o.payment_link) {
-      // Send the customer straight to this offering's BAC CompraClick link.
-      window.open(o.payment_link, "_blank", "noopener,noreferrer");
+    // Offerings are granted to the buyer's account, so they must be signed in.
+    if (!user) {
+      toast.error("Please sign in to purchase.");
+      navigate("/auth");
       return;
     }
-    // No CompraClick link set yet — fall back to the contact-to-pay prompt.
     setSelected(o);
-  };
-
-  const handleSuccess = async (paymentId: string) => {
-    if (!selected || !user) return;
-    try {
-      await purchaseOffering({ userId: user.id, offering: selected, paymentId });
-      invalidate();
-      toast.success(`${selected.name} added to your account.`);
-      setSelected(null);
-      navigate(redirectAfterPurchase);
-    } catch (e: any) {
-      toast.error(e.message || "Purchase failed");
-    }
   };
 
   const sections: { key: OfferingType; items: Offering[] }[] = [
@@ -220,9 +206,18 @@ export function OfferingsPurchaseSection({ defaultTab = "all", redirectAfterPurc
           </DialogHeader>
           {selected && (
             <div className="space-y-4">
-              <ContactToPayNotice
-                serviceTitle={selected.name}
-                amount={selected.price}
+              <div className="flex items-center justify-between text-sm font-body">
+                <span className="text-muted-foreground">{selected.name}</span>
+                <span className="font-semibold text-foreground">{formatCRCWithUsd(selected.price)}</span>
+              </div>
+              <PayPalCheckout
+                createOrderBody={() => (user ? { kind: "offering", offering_id: selected.id, user_id: user.id } : null)}
+                onSuccess={() => {
+                  invalidate();
+                  toast.success(`${selected.name} added to your account.`);
+                  setSelected(null);
+                  navigate(redirectAfterPurchase);
+                }}
               />
             </div>
           )}

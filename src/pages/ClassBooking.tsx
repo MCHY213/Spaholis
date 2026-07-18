@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMyOfferings, redeemOffering, type UserOffering } from "@/hooks/useOfferings";
 import { useOfferingEligibilityMap, filterEligibleOfferings, isOfferingEligibleForClass } from "@/hooks/useOfferingEligibility";
 import { useTokenOffering, getStoredMembershipToken } from "@/hooks/useMembershipToken";
+import { PayPalCheckout } from "@/components/payments/PayPalCheckout";
 
 function useScheduleEvent(scheduleId: string | null) {
   return useQuery({
@@ -607,9 +608,19 @@ const ClassBookingPage = () => {
                       </div>
 
                       {payMethod === "card" ? (
-                        <Button className="w-full" onClick={handleCardCheckout} disabled={submitting}>
-                          {submitting ? t("booking.booking") : "Book"}
-                        </Button>
+                        <PayPalCheckout
+                          disabled={!formData.name || !formData.email}
+                          createOrderBody={() =>
+                            formData.name && formData.email
+                              ? { kind: "class", schedule_id: scheduleId, guest_name: formData.name, guest_email: formData.email, guest_phone: formData.phone || null, coupon_code: appliedCoupon?.code ?? null }
+                              : null
+                          }
+                          onSuccess={() => {
+                            toast.success(t("booking.classBookedSuccess"));
+                            setBookingComplete(true);
+                            setStep(steps.length - 1);
+                          }}
+                        />
                       ) : useLinkMembership ? (
                         <Button className="w-full" onClick={handleTokenRedeem} disabled={submitting}>
                           {submitting ? t("booking.booking") : t("booking.confirmBooking")}
