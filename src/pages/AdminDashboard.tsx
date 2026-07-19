@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Calendar, Briefcase, Users, UserCircle, Settings, Menu, X,
-  TrendingUp, Gift, Tag, CalendarDays, GraduationCap, CreditCard, ShieldAlert, DoorOpen, FileEdit, Heart, Package, Sparkles, BookOpen, Image, HelpCircle, Link2, Clock, ArrowLeft,
+  TrendingUp, Gift, Tag, CalendarDays, GraduationCap, CreditCard, ShieldAlert, DoorOpen, FileEdit, Heart, Package, Sparkles, BookOpen, Image, HelpCircle, Link2, Clock, ArrowLeft, Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,6 +36,7 @@ import { AdminPaymentIssues } from "@/components/admin/AdminPaymentIssues";
 import { AdminBacVerifications } from "@/components/admin/AdminBacVerifications";
 import { AdminBacLinks } from "@/components/admin/AdminBacLinks";
 import { AdminBusinessHours } from "@/components/admin/AdminBusinessHours";
+import { AdminEmailTemplates } from "@/components/admin/AdminEmailTemplates";
 import holisLogo from "@/assets/holis-logo-clean.png";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -69,6 +70,7 @@ const sidebarLinks = [
   { label: "Tags", icon: Tag, id: "tags" },
   { label: "Media Library", icon: Image, id: "media" },
   { label: "Content", icon: FileEdit, id: "content" },
+  { label: "Client Emails", icon: Mail, id: "client-emails" },
   { label: "Settings", icon: Settings, id: "settings" },
 ];
 
@@ -205,6 +207,7 @@ const AdminDashboard = () => {
           {activeTab === "tags" && <AdminTagsManager />}
           {activeTab === "media" && <MediaLibrary />}
           {activeTab === "content" && <AdminContentEditor />}
+          {activeTab === "client-emails" && <AdminEmailTemplates />}
           {activeTab === "settings" && <AdminSettingsManager />}
         </div>
       </main>

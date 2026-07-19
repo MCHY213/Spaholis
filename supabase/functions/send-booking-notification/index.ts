@@ -64,6 +64,71 @@ function tableRow(label: string, value: string) {
   return `<tr><td style="padding:6px 10px;border:1px solid #ddd;font-weight:600;width:40%;">${label}</td><td style="padding:6px 10px;border:1px solid #ddd;">${value}</td></tr>`;
 }
 
+// ---- Editable customer templates (public.email_templates) -----------------
+// The admin "Client Emails" panel edits subject/heading/body for the customer
+// confirmation emails. We load the row, interpolate {{variables}}, and wrap the
+// body in the branded shell. Missing/disabled → built-in copy below. Admin
+// notification emails are internal and stay hard-coded.
+type Template = { subject: string; heading: string; body_html: string };
+
+async function loadTemplate(supabase: any, key: string): Promise<Template | null> {
+  try {
+    const { data } = await supabase
+      .from("email_templates")
+      .select("subject, heading, body_html, enabled")
+      .eq("template_key", key)
+      .maybeSingle();
+    if (!data || data.enabled === false) return null;
+    return { subject: data.subject, heading: data.heading, body_html: data.body_html };
+  } catch (_e) {
+    return null;
+  }
+}
+
+const escHtml = (s: unknown) =>
+  String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function interpolate(str: string, vars: Record<string, string>): string {
+  return String(str ?? "").replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, k) => (k in vars ? String(vars[k] ?? "") : ""));
+}
+
+function renderShell(heading: string, inner: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+  <body style="font-family:Arial,sans-serif;background:#f5f1ec;padding:20px;">
+    <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
+      <div style="background:#2F2F2F;padding:28px;text-align:center;">
+        <h1 style="color:#F5F1EC;font-size:22px;margin:0;">${heading}</h1>
+      </div>
+      <div style="padding:28px;color:#2F2F2F;">${inner}</div>
+      <div style="background:#f5f1ec;padding:16px;text-align:center;font-size:12px;color:#666;">
+        Holis Wellness Center · spaholis.com
+      </div>
+    </div>
+  </body></html>`;
+}
+
+// textVars are HTML-escaped; rawVars ({{details}}, {{button}}) are trusted HTML.
+function buildFromTemplate(
+  tpl: Template,
+  textVars: Record<string, string>,
+  rawVars: Record<string, string>,
+): { subject: string; html: string } {
+  const vars: Record<string, string> = { ...rawVars };
+  for (const [k, v] of Object.entries(textVars)) vars[k] = escHtml(v);
+  return {
+    subject: interpolate(tpl.subject, vars),
+    html: renderShell(interpolate(tpl.heading, vars), interpolate(tpl.body_html, vars)),
+  };
+}
+
+function detailsTable(rows: string[]): string {
+  return `<table style="width:100%;border-collapse:collapse;font-size:14px;">${rows.join("")}</table>`;
+}
+
+function whatsappButton(url: string): string {
+  return `<p style="margin:0;"><a href="${url}" style="display:inline-block;background:#25D366;color:#ffffff;padding:10px 18px;border-radius:6px;font-size:14px;text-decoration:none;">Message us on WhatsApp</a></p>`;
+}
+
 function buildAdminHtml(ctx: {
   reservationId: string;
   serviceName: string;
@@ -297,23 +362,52 @@ async function handleByBookingId(bookingId: string, supabase: any): Promise<Resp
 
   let customerRes: { ok: boolean; error?: string } = { ok: true };
   if (booking.guest_email) {
-    const customerHtml = buildCustomerHtml({
-      reservationId,
-      serviceName,
-      therapist,
-      guestName: booking.guest_name || "Guest",
-      bookingDate,
-      bookingTime,
-      totalPrice: totalUsd,
-      depositPaid,
-      remainingBalance: remaining,
-      paymentStatus: paymentStatusLabel,
-    });
-    customerRes = await sendEmail(
-      booking.guest_email,
-      `Your Holis Wellness reservation is confirmed (${reservationId})`,
-      customerHtml,
-    );
+    // Prefer the admin-editable template; fall back to the built-in layout.
+    const tpl = await loadTemplate(supabase, "treatment_confirmation");
+    let subject: string;
+    let customerHtml: string;
+    if (tpl) {
+      const rows: string[] = [];
+      rows.push(tableRow("Reservation ID", escHtml(reservationId)));
+      rows.push(tableRow("Service", escHtml(serviceName)));
+      if (therapist) rows.push(tableRow("Therapist", escHtml(therapist)));
+      rows.push(tableRow("Date", escHtml(bookingDate)));
+      rows.push(tableRow("Time", escHtml(bookingTime)));
+      rows.push(tableRow("Payment Status", escHtml(paymentStatusLabel)));
+      if (totalUsd != null) rows.push(tableRow("Total", formatCRC(totalUsd)));
+      if (depositPaid != null) rows.push(tableRow("Deposit Paid", formatCRC(depositPaid)));
+      if (remaining != null && remaining > 0) rows.push(tableRow("Balance Due at Visit", formatCRC(remaining)));
+      const built = buildFromTemplate(
+        tpl,
+        {
+          guest_name: booking.guest_name || "Guest",
+          reservation_id: reservationId,
+          service_name: serviceName,
+          therapist: therapist || "",
+          date: bookingDate,
+          time: bookingTime,
+          payment_status: paymentStatusLabel,
+        },
+        { details: detailsTable(rows), button: "" },
+      );
+      subject = built.subject;
+      customerHtml = built.html;
+    } else {
+      subject = `Your Holis Wellness reservation is confirmed (${reservationId})`;
+      customerHtml = buildCustomerHtml({
+        reservationId,
+        serviceName,
+        therapist,
+        guestName: booking.guest_name || "Guest",
+        bookingDate,
+        bookingTime,
+        totalPrice: totalUsd,
+        depositPaid,
+        remainingBalance: remaining,
+        paymentStatus: paymentStatusLabel,
+      });
+    }
+    customerRes = await sendEmail(booking.guest_email, subject, customerHtml);
     if (!customerRes.ok) console.error("[send-booking-notification] customer email failed:", customerRes.error);
   }
 
@@ -564,22 +658,49 @@ async function handleByClassBookingId(classBookingId: string, supabase: any): Pr
 
   let customerRes: { ok: boolean; error?: string } = { ok: true };
   if (booking.guest_email) {
-    const customerHtml = buildClassCustomerHtml({
-      reservationId,
-      className,
-      instructor,
-      guestName: booking.guest_name || "Guest",
-      scheduleLabel,
-      location,
-      totalPrice: totalUsd,
-      paymentStatus: paymentStatusLabel,
-      whatsappUrl,
-    });
-    customerRes = await sendEmail(
-      booking.guest_email,
-      `Your Holis class is booked — ${className} (${reservationId})`,
-      customerHtml,
-    );
+    // Prefer the admin-editable template; fall back to the built-in layout.
+    const tpl = await loadTemplate(supabase, "class_confirmation");
+    let subject: string;
+    let customerHtml: string;
+    if (tpl) {
+      const rows: string[] = [];
+      rows.push(tableRow("Reservation ID", escHtml(reservationId)));
+      rows.push(tableRow("Class", escHtml(className)));
+      if (instructor) rows.push(tableRow("Instructor", escHtml(instructor)));
+      rows.push(tableRow("When", escHtml(scheduleLabel)));
+      if (location) rows.push(tableRow("Location", escHtml(location)));
+      rows.push(tableRow("Payment Status", escHtml(paymentStatusLabel)));
+      if (totalUsd != null && totalUsd > 0) rows.push(tableRow("Amount Paid", formatCRC(totalUsd)));
+      const built = buildFromTemplate(
+        tpl,
+        {
+          guest_name: booking.guest_name || "Guest",
+          reservation_id: reservationId,
+          class_title: className,
+          instructor: instructor || "",
+          when: scheduleLabel,
+          location: location || "",
+          payment_status: paymentStatusLabel,
+        },
+        { details: detailsTable(rows), button: whatsappButton(whatsappUrl), whatsapp_url: whatsappUrl },
+      );
+      subject = built.subject;
+      customerHtml = built.html;
+    } else {
+      subject = `Your Holis class is booked — ${className} (${reservationId})`;
+      customerHtml = buildClassCustomerHtml({
+        reservationId,
+        className,
+        instructor,
+        guestName: booking.guest_name || "Guest",
+        scheduleLabel,
+        location,
+        totalPrice: totalUsd,
+        paymentStatus: paymentStatusLabel,
+        whatsappUrl,
+      });
+    }
+    customerRes = await sendEmail(booking.guest_email, subject, customerHtml);
     if (!customerRes.ok) console.error("[send-booking-notification] class customer email failed:", customerRes.error);
   }
 
