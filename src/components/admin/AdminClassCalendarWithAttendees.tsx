@@ -574,7 +574,7 @@ export function AdminClassCalendarWithAttendees() {
         // Booking through the customer's own pass goes via the server so the
         // credit, the redemption record and the spot all move atomically.
         if (linkedPass && attendeeForm.payment_method === "offering") {
-          const { error } = await supabase.rpc("admin_book_class_with_offering" as any, {
+          const { data, error } = await supabase.rpc("admin_book_class_with_offering" as any, {
             _user_offering_id: linkedPass.id,
             _schedule_id: selected.id,
             _guest_name: attendeeForm.name.trim(),
@@ -582,6 +582,13 @@ export function AdminClassCalendarWithAttendees() {
             _guest_phone: attendeeForm.phone.trim() || null,
           });
           if (error) throw error;
+          // Confirmation email (customer + admin), only if we have an address.
+          const bookingId = (data as any)?.booking_id as string | undefined;
+          if (bookingId && attendeeForm.email.trim()) {
+            supabase.functions
+              .invoke("send-booking-notification", { body: { classBookingId: bookingId } })
+              .catch((err) => console.error("[add attendee] notify failed", err));
+          }
           toast.success(
             linkedPass.is_unlimited
               ? `Added with ${linkedPass.name_snapshot}`
@@ -593,7 +600,7 @@ export function AdminClassCalendarWithAttendees() {
           setSelected((prev) => prev ? { ...prev, spots_remaining: Math.max(0, prev.spots_remaining - 1) } : prev);
           return;
         }
-        const { error } = await supabase.from("class_bookings").insert({
+        const { data: inserted, error } = await supabase.from("class_bookings").insert({
           schedule_id: selected.id,
           guest_name: attendeeForm.name.trim(),
           guest_email: attendeeForm.email.trim() || null,
@@ -603,11 +610,17 @@ export function AdminClassCalendarWithAttendees() {
           payment_method: attendeeForm.payment_method,
           total_price: attendeeForm.total_price,
           coupon_code: attendeeForm.coupon_code.trim() || null,
-        });
+        }).select("id").single();
         if (error) throw error;
         await supabase.from("class_schedule")
           .update({ spots_remaining: Math.max(0, selected.spots_remaining - 1) })
           .eq("id", selected.id);
+        // Confirmation email (customer + admin), only if we have an address.
+        if (inserted?.id && attendeeForm.email.trim()) {
+          supabase.functions
+            .invoke("send-booking-notification", { body: { classBookingId: inserted.id } })
+            .catch((err) => console.error("[add attendee] notify failed", err));
+        }
         toast.success("Attendee added");
         setAttendeeOpen(false);
         loadAttendees(selected.id);

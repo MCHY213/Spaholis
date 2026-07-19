@@ -71,6 +71,32 @@ function customerHtml(o: any, link: string): string {
   </div>`;
 }
 
+// Confirmation for a self-service purchase (no token — the buyer has an account).
+function purchaseHtml(o: any): string {
+  const firstName = String(o.guest_name || "").trim().split(/\s+/)[0] || "there";
+  const entitlement = o.is_unlimited
+    ? "Unlimited classes"
+    : `${o.credits_remaining ?? 0} class credit${(o.credits_remaining ?? 0) === 1 ? "" : "s"}`;
+  const validity = o.expires_at
+    ? `<p style="margin:4px 0;color:#666;font-size:14px;">Valid until ${new Date(o.expires_at).toLocaleDateString()}</p>`
+    : "";
+  return `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1f2937;">
+    <h1 style="font-size:22px;margin:0 0 8px;">Thank you, ${esc(firstName)}! 🌿</h1>
+    <p style="font-size:15px;line-height:1.5;">Your purchase is complete and <strong>${esc(o.name_snapshot)}</strong> is now active in your account.</p>
+    <div style="background:#f3f6f6;border-radius:12px;padding:16px;margin:16px 0;">
+      <p style="margin:0 0 4px;font-weight:bold;">${esc(o.name_snapshot)}</p>
+      <p style="margin:4px 0;color:#334155;font-size:14px;">${entitlement}</p>
+      ${validity}
+    </div>
+    <p style="font-size:15px;line-height:1.5;">Log in and head to Classes to book — your credit is applied automatically at checkout.</p>
+    <p style="text-align:center;margin:24px 0;">
+      <a href="${SITE_URL}/classes" style="background:#1d5b6a;color:#fff;text-decoration:none;padding:14px 28px;border-radius:9999px;font-weight:bold;font-size:16px;display:inline-block;">Browse classes</a>
+    </p>
+    <p style="font-size:13px;color:#999;margin-top:24px;">Holis Wellness Center · Manuel Antonio, Costa Rica</p>
+  </div>`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ ok: false, reason: "method_not_allowed" }, 405);
@@ -90,31 +116,39 @@ Deno.serve(async (req) => {
 
   const { data: o, error } = await supabase
     .from("user_offerings")
-    .select("id, name_snapshot, code, access_token, is_unlimited, credits_remaining, expires_at, guest_name, guest_email")
+    .select("id, name_snapshot, code, access_token, is_unlimited, credits_remaining, expires_at, guest_name, guest_email, user_id")
     .eq("id", userOfferingId)
     .maybeSingle();
 
   if (error) return json({ ok: false, reason: "fetch_failed" }, 500);
   if (!o) return json({ ok: false, reason: "not_found" }, 404);
-  if (!o.access_token) return json({ ok: false, reason: "no_token" }, 409);
-  const to = String(o.guest_email || "").trim();
+
+  // Recipient: the guest email (admin order) or the buyer's account email (self
+  // purchase, where user_id is set).
+  let to = String(o.guest_email || "").trim();
+  if (!to && o.user_id) {
+    const { data: prof } = await supabase.from("profiles").select("email, full_name").eq("user_id", o.user_id).maybeSingle();
+    to = String(prof?.email || "").trim();
+    if (!o.guest_name && prof?.full_name) (o as any).guest_name = prof.full_name;
+  }
   if (!to) return json({ ok: false, reason: "no_recipient" }, 409);
 
-  const link = `${SITE_URL}/classes?m=${o.access_token}`;
-  const html = customerHtml(o, link);
-
-  // Customer email
-  const custRes = await sendEmail(to, `Your Holis membership is ready — ${o.name_snapshot}`, html);
+  const isOrder = !!o.access_token; // admin order → schedule link; else a purchase
+  const link = isOrder ? `${SITE_URL}/classes?m=${o.access_token}` : `${SITE_URL}/classes`;
+  const custRes = isOrder
+    ? await sendEmail(to, `Your Holis membership is ready — ${o.name_snapshot}`, customerHtml(o, link))
+    : await sendEmail(to, `Your Holis purchase — ${o.name_snapshot}`, purchaseHtml(o));
 
   // Admin copy (+ backup)
-  const adminSubj = `[New order] ${o.guest_name || to} — ${o.name_snapshot} (${o.code})`;
+  const adminSubj = isOrder
+    ? `[New order] ${o.guest_name || to} — ${o.name_snapshot} (${o.code})`
+    : `[Purchase] ${o.guest_name || to} — ${o.name_snapshot}`;
   const adminHtml = `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:16px;color:#1f2937;">
-      <h2 style="font-size:18px;">New membership order</h2>
+      <h2 style="font-size:18px;">${isOrder ? "New membership order" : "New membership/pass purchase"}</h2>
       <p><strong>Customer:</strong> ${esc(o.guest_name || "")} &lt;${esc(to)}&gt;</p>
       <p><strong>Offering:</strong> ${esc(o.name_snapshot)}</p>
-      <p><strong>Code:</strong> ${esc(o.code)}</p>
-      <p><strong>Scheduling link:</strong><br><span style="word-break:break-all;">${link}</span></p>
+      ${isOrder ? `<p><strong>Code:</strong> ${esc(o.code)}</p><p><strong>Scheduling link:</strong><br><span style="word-break:break-all;">${link}</span></p>` : ""}
     </div>`;
   await sendEmail(ADMIN_EMAIL, adminSubj, adminHtml);
   if (ADMIN_BACKUP_EMAIL && ADMIN_BACKUP_EMAIL !== ADMIN_EMAIL) {

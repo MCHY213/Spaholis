@@ -103,6 +103,7 @@ Deno.serve(async (req) => {
     if (uoErr) throw uoErr;
 
     await admin.from("paypal_orders").update({ status: "captured", user_offering_id: uo.id, updated_at: new Date().toISOString() }).eq("order_id", orderId);
+    try { await admin.functions.invoke("send-membership-order-email", { body: { userOfferingId: uo.id } }); } catch (e) { console.error("[paypal-capture-order] offering email failed", e); }
     return json({ ok: true, kind: "offering", userOfferingId: uo.id });
   } catch (err) {
     console.error("[paypal-capture-order] failed", { message: (err as Error).message });
