@@ -1,0 +1,14 @@
+{
+  "name": "Holis Wellness Center",
+  "short_name": "Holis",
+  "description": "Spa & Holistic Treatments, Yoga, Breathwork, Wellness Experiences & Retreats in Manuel Antonio, Costa Rica.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7b9d87",
+  "icons": [
+    { "src": "/icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

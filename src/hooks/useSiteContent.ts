@@ -47,8 +47,8 @@ async function fetchSection(key: string) {
  * present, we layer those overrides on top of whatever the DB has
  * so the editor user sees their staged edits live.
  * ============================================================ */
-const PREVIEW_KEY = "__lovable_preview_overrides__";
-const PREVIEW_EVENT = "lovable:preview-overrides-changed";
+const PREVIEW_KEY = "__cms_preview_overrides__";
+const PREVIEW_EVENT = "cms:preview-overrides-changed";
 
 interface PreviewOverrides {
   content?: Record<string, any>;
