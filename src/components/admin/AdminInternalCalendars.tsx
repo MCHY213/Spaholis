@@ -94,6 +94,13 @@ const MIN_HOUR_PX = 46;
 const MAX_HOUR_PX = 72;
 /** Header + toolbar + dialog padding sitting above the timeline. */
 const DAY_VIEW_CHROME_PX = 200;
+/** Day-view horizontal layout: the time-label gutter, the smallest a column
+ *  may shrink to before the timeline scrolls sideways, and the gap between
+ *  columns. Keeps busy days (many overlapping bookings) readable on a phone —
+ *  columns stay legible and you pan across them instead of them being clipped. */
+const DAY_TIME_GUTTER_PX = 56;
+const DAY_LANE_MIN_PX = 116;
+const DAY_LANE_GAP_PX = 4;
 
 export type Recurrence = "none" | "daily" | "weekly" | "biweekly" | "monthly";
 
@@ -871,6 +878,15 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
               Math.min(MAX_HOUR_PX, Math.floor((availPx - 8) / Math.max(endH - startH, 1))),
             );
 
+            // Horizontal sizing: give each overlapping column a readable width.
+            // When they'd get too narrow to read (busy day), the timeline scrolls
+            // sideways instead of squishing/clipping the columns.
+            const maxLanes = Math.max(1, ...laid.map((l) => l.lanes));
+            const availW = (typeof window !== "undefined" ? Math.min(window.innerWidth * 0.95, 1152) : 900)
+              - DAY_TIME_GUTTER_PX - 48; // dialog padding + scrollbar allowance
+            const laneW = Math.max(DAY_LANE_MIN_PX, Math.floor(availW / maxLanes));
+            const canvasW = DAY_TIME_GUTTER_PX + maxLanes * laneW;
+
             return (
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -916,8 +932,8 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
 
                 {/* pt-2 gives the first hour label room — it sits half a line
                     above its own gridline and would otherwise clip at the top. */}
-                <div className="overflow-y-auto max-h-[calc(100vh-11rem)] pr-1 pt-2">
-                  <div className="relative" style={{ height: (endH - startH) * hourPx + 8 }}>
+                <div className="overflow-auto max-h-[calc(100vh-11rem)] pr-1 pt-2">
+                  <div className="relative" style={{ height: (endH - startH) * hourPx + 8, width: canvasW, minWidth: "100%" }}>
                     {hours.map((h, i) => (
                       <div key={h} className="absolute left-0 right-0 flex items-start" style={{ top: i * hourPx }}>
                         <span className="w-14 shrink-0 -translate-y-2 pr-2 text-right text-xs font-medium text-muted-foreground">
@@ -927,8 +943,8 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
                       </div>
                     ))}
 
-                    <div className="absolute inset-y-0 left-14 right-0">
-                      {laid.map(({ entry, startMin, endMin, lane, lanes }) => {
+                    <div className="absolute inset-y-0 right-0" style={{ left: DAY_TIME_GUTTER_PX }}>
+                      {laid.map(({ entry, startMin, endMin, lane }) => {
                         const color = entryColor(entry);
                         const loc = locationLabel(entry);
                         return (
@@ -942,8 +958,8 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
                             style={{
                               top: ((startMin - dayStartMin) / 60) * hourPx,
                               height: Math.max(((endMin - startMin) / 60) * hourPx - 2, 22),
-                              left: `calc(${(lane / lanes) * 100}% + 2px)`,
-                              width: `calc(${(1 / lanes) * 100}% - 4px)`,
+                              left: lane * laneW + 2,
+                              width: laneW - DAY_LANE_GAP_PX,
                               backgroundColor: `${color}20`,
                               borderColor: `${color}55`,
                               color,
