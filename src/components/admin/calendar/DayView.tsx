@@ -81,31 +81,40 @@ export function DayView({ date, bookings, onBookingClick, onSlotClick }: DayView
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {dayBookings.map((b) => (
-              <div
-                key={b.id}
-                className={cn(
-                  "p-4 cursor-pointer hover:bg-muted/50 transition-colors border-l-4",
-                  getStatusBorder(b.status)
-                )}
-                onClick={() => onBookingClick(b)}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-foreground">
-                      {b.booking_time?.slice(0, 5)} – {b.end_time ? format(new Date(`2000-01-01T${b.end_time}`), "h:mm a") : ""}
-                    </p>
-                    <p className="text-sm font-body font-semibold text-foreground mt-1">
-                      {b.guest_name || "Guest"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {b.service_title || "Service"}
-                    </p>
+            {dayBookings.map((b) => {
+              // Calculate end time: start + duration_minutes
+              const [h, m] = b.booking_time.split(":").map(Number);
+              const durationMs = (b.duration_minutes || 60) * 60 * 1000;
+              const startDate = new Date(2000, 0, 1, h, m);
+              const endDate = new Date(startDate.getTime() + durationMs);
+              const endTimeStr = `${String(endDate.getHours()).padStart(2, "0")}:${String(endDate.getMinutes()).padStart(2, "0")}`;
+
+              return (
+                <div
+                  key={b.id}
+                  className={cn(
+                    "p-4 cursor-pointer hover:bg-muted/50 transition-colors border-l-4",
+                    getStatusBorder(b.status)
+                  )}
+                  onClick={() => onBookingClick(b)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-foreground">
+                        {b.booking_time?.slice(0, 5)} – {endTimeStr}
+                      </p>
+                      <p className="text-sm font-body font-semibold text-foreground mt-1">
+                        {b.guest_name || "Guest"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {b.service_title || "Service"}
+                      </p>
+                    </div>
+                    <span className={cn("w-3 h-3 rounded-full flex-shrink-0 mt-1", getStatusColor(b.status))} />
                   </div>
-                  <span className={cn("w-3 h-3 rounded-full flex-shrink-0 mt-1", getStatusColor(b.status))} />
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
