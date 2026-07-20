@@ -20,6 +20,9 @@ const ClientDashboard = () => {
   const [rewards, setRewards] = useState<any[]>([]);
   const [loyaltySettings, setLoyaltySettings] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
+  // Staff role, so a coordinator/admin sees the calendar shortcut here in My
+  // Account instead of having to type the /admin URL by hand.
+  const [staffRole, setStaffRole] = useState<"admin" | "coordinator" | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,18 +34,27 @@ const ClientDashboard = () => {
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      const [profileRes, bookingsRes, rewardsRes, loyaltyRes, notifRes] = await Promise.all([
+      const [profileRes, bookingsRes, rewardsRes, loyaltyRes, notifRes, rolesRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", user.id).single(),
         supabase.from("bookings").select("*, services(title, category)").eq("user_id", user.id).order("booking_date", { ascending: false }),
         supabase.from("loyalty_rewards").select("*").eq("user_id", user.id).order("earned_at", { ascending: false }),
         supabase.from("loyalty_settings").select("*").eq("is_active", true).single(),
         supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
+        supabase.from("user_roles").select("role").eq("user_id", user.id),
       ]);
       setProfile(profileRes.data);
       setBookings(bookingsRes.data ?? []);
       setRewards(rewardsRes.data ?? []);
       setLoyaltySettings(loyaltyRes.data);
       setNotifications(notifRes.data ?? []);
+      const roles = (rolesRes.data ?? []).map((r: any) => r.role);
+      setStaffRole(
+        roles.includes("super_admin") || roles.includes("manager")
+          ? "admin"
+          : roles.includes("coordinator")
+          ? "coordinator"
+          : null,
+      );
       setLoading(false);
     };
     fetchData();
@@ -76,23 +88,38 @@ const ClientDashboard = () => {
           <p className="spa-body mt-2">Manage your bookings and rewards.</p>
         </div>
 
-        {/* Admin Panel shortcut — only shown to admin accounts (see src/lib/adminEmails.ts).
-            The /admin route still enforces the real role check server-side. */}
-        {isAdminEmail(user?.email) && (
-          <Link
-            to="/admin"
-            className="mb-8 flex items-center gap-4 bg-spa-sage/10 border border-spa-sage/30 rounded-2xl p-5 hover:bg-spa-sage/15 transition-colors"
-          >
-            <div className="h-11 w-11 rounded-xl bg-spa-sage/20 flex items-center justify-center shrink-0">
-              <ShieldCheck className="h-5 w-5 text-spa-sage" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-heading text-base font-medium text-foreground">Admin Panel</h3>
-              <p className="font-body text-xs text-muted-foreground mt-0.5">Manage bookings, services, and business settings</p>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </Link>
-        )}
+        {/* Staff shortcut into the admin area. Full admins get the whole panel;
+            coordinators land straight on the treatments calendar (see
+            AdminDashboard — a coordinator's default tab is "calendars"). Shown to
+            admin emails OR anyone with a staff role so coordinators no longer
+            have to type the /admin URL by hand. The /admin route still enforces
+            the real role check server-side; this is only the entry point. */}
+        {(isAdminEmail(user?.email) || staffRole) && (() => {
+          const coordinatorOnly = staffRole === "coordinator" && !isAdminEmail(user?.email);
+          return (
+            <Link
+              to="/admin"
+              className="mb-8 flex items-center gap-4 bg-spa-sage/10 border border-spa-sage/30 rounded-2xl p-5 hover:bg-spa-sage/15 transition-colors"
+            >
+              <div className="h-11 w-11 rounded-xl bg-spa-sage/20 flex items-center justify-center shrink-0">
+                {coordinatorOnly
+                  ? <Calendar className="h-5 w-5 text-spa-sage" />
+                  : <ShieldCheck className="h-5 w-5 text-spa-sage" />}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-heading text-base font-medium text-foreground">
+                  {coordinatorOnly ? "Treatments Calendar" : "Admin Panel"}
+                </h3>
+                <p className="font-body text-xs text-muted-foreground mt-0.5">
+                  {coordinatorOnly
+                    ? "View and manage the treatments schedule"
+                    : "Manage bookings, services, and business settings"}
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </Link>
+          );
+        })()}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-10">
