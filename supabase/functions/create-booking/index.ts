@@ -199,6 +199,20 @@ async function ensureSlotAvailable(
       code: "SLOT_TAKEN",
     });
   }
+
+  // Full-spa availability blocks (lunch / off-site with no coverage) make the
+  // slot unbookable even if the room is free — mirrors the website's
+  // get_availability_blocks check so a stale slot can't slip through.
+  const { data: blocks, error: blockErr } = await admin.rpc("get_availability_blocks", {
+    _from: start.toISOString(),
+    _to: end.toISOString(),
+  });
+  if (blockErr) throw blockErr;
+  if (blocks && blocks.length > 0) {
+    throw Object.assign(new Error("This time is not available. Please choose another time."), {
+      code: "SLOT_TAKEN",
+    });
+  }
 }
 
 Deno.serve(async (req) => {

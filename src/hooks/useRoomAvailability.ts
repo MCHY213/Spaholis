@@ -90,6 +90,19 @@ export function useRoomAvailability(
       );
       if (internalErr) throw internalErr;
 
+      // Full-spa availability blocks (lunch, off-site with no coverage): during
+      // these windows the website must offer NO slots, regardless of free rooms.
+      const { data: blocks, error: blocksErr } = await supabase.rpc(
+        "get_availability_blocks",
+        { _from: dayStart.toISOString(), _to: dayEnd.toISOString() },
+      );
+      if (blocksErr) throw blocksErr;
+      const blockIntervals = (blocks ?? [])
+        .map((b: any) => ({ start: new Date(b.block_start), end: new Date(b.block_end) }))
+        .filter((b) => !isNaN(b.start.getTime()) && !isNaN(b.end.getTime()));
+      const slotIsBlocked = (start: Date, end: Date) =>
+        blockIntervals.some((b) => start < b.end && end > b.start);
+
       const busy: BusyInterval[] = [
         ...(bookings ?? []).map((b: any) => ({
           room_id: b.room_id,
@@ -115,6 +128,8 @@ export function useRoomAvailability(
 
       for (const slot of slots) {
         const slotEnd = new Date(slot.getTime() + durationMinutes * 60000);
+        // A full-spa block (lunch / no coverage) removes the slot entirely.
+        if (slotIsBlocked(slot, slotEnd)) continue;
         if (couples) {
           // Couples need Room 2, or the 3A+3B pair — one slot per time, room
           // chosen by placeCouplesSlot (prefers the solo couples room).

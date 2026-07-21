@@ -43,6 +43,8 @@ export interface CalendarEntry {
   group_id: string | null;
   /** Spans the whole day; shown in a band above the timeline, not on it. */
   is_all_day: boolean;
+  /** When true, hides ALL website availability during this window (lunch, off-site with no coverage). */
+  blocks_availability: boolean;
   /** Shared by every occurrence of a repeating entry. Null when standalone. */
   series_id: string | null;
   recurrence: string;
@@ -257,6 +259,7 @@ const emptyForm = {
   offsite_location: "",
   group_id: "",
   is_all_day: false,
+  blocks_availability: false,
   recurrence: "none" as Recurrence,
   recurrence_until: "",
 };
@@ -429,6 +432,7 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
         offsite_location: null,
         group_id: null,
         is_all_day: false,
+        blocks_availability: false,
         series_id: null,
         recurrence: "none",
         recurrence_until: null,
@@ -553,6 +557,7 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
       offsite_location: entry.offsite_location || "",
       group_id: entry.group_id ?? "",
       is_all_day: entry.is_all_day,
+      blocks_availability: entry.blocks_availability ?? false,
       recurrence: (entry.recurrence as Recurrence) ?? "none",
       recurrence_until: entry.recurrence_until ?? "",
     });
@@ -600,6 +605,7 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
       end_time: allDay ? null : end_time,
       duration_minutes: allDay ? 1440 : form.duration_minutes,
       is_all_day: allDay,
+      blocks_availability: form.blocks_availability,
       group_id: form.group_id || null,
       notes: form.notes || null,
       color: TYPE_COLORS[calendarType],
@@ -1111,6 +1117,24 @@ export function AdminInternalCalendars({ restrictToTreatment = false }: { restri
               />
               <span className="text-sm">All day</span>
             </label>
+
+            {/* Only on the Treatments calendar: hide website availability during
+                this window (lunch, off-site with no coverage). */}
+            {calendarType === "treatment" && (
+              <label className="flex items-start gap-2 cursor-pointer w-fit rounded-md border border-amber-300/60 bg-amber-50/60 px-3 py-2">
+                <Checkbox
+                  className="mt-0.5"
+                  checked={form.blocks_availability}
+                  onCheckedChange={(v) => setForm({ ...form, blocks_availability: v === true })}
+                />
+                <span className="text-sm">
+                  Block website availability
+                  <span className="block text-xs text-muted-foreground">
+                    No online slots during this time (e.g. lunch, or off-site with no therapist free). WhatsApp &amp; at-your-location requests stay open.
+                  </span>
+                </span>
+              </label>
+            )}
 
             <div className="space-y-1.5">
               <Label>Dates</Label>

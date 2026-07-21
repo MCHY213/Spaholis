@@ -25,6 +25,7 @@ export type Database = {
           entry_date: string
           group_id: string | null
           id: string
+          blocks_availability: boolean
           is_all_day: boolean
           is_offsite: boolean
           notes: string | null
@@ -47,6 +48,7 @@ export type Database = {
           entry_date: string
           group_id?: string | null
           id?: string
+          blocks_availability?: boolean
           is_all_day?: boolean
           is_offsite?: boolean
           notes?: string | null
@@ -69,6 +71,7 @@ export type Database = {
           entry_date?: string
           group_id?: string | null
           id?: string
+          blocks_availability?: boolean
           is_all_day?: boolean
           is_offsite?: boolean
           notes?: string | null
@@ -2429,6 +2432,13 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      get_availability_blocks: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          block_end: string
+          block_start: string
+        }[]
       }
       get_internal_busy_intervals: {
         Args: { _from: string; _to: string }
