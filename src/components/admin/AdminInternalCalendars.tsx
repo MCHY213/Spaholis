@@ -435,40 +435,46 @@ export function AdminInternalCalendars({ restrictToTreatment = false, readOnly =
     const mapped: CalendarEntry[] = rows
       // Treatment-type services only (packages included); skip dead bookings.
       .filter((b) => b.services?.type === "treatment" && !BOOKING_HIDDEN_STATUSES.has(b.status))
-      .map((b) => ({
-        id: `booking:${b.id}`,
-        calendar_type: "treatment",
-        // A custom title (set in the booking edit modal) wins; otherwise fall
-        // back to the auto "Guest — Service" label.
-        title: (b.title && String(b.title).trim())
-          ? String(b.title).trim()
-          : `${b.guest_name ?? "Guest"} — ${b.services?.title ?? "Treatment"}`,
-        entry_date: b.booking_date,
-        end_date: null,
-        start_time: String(b.booking_time ?? "09:00").slice(0, 5),
-        end_time: null,
-        duration_minutes: b.services?.duration_minutes ?? 60,
-        notes: null,
-        color: bookingColor(b.status),
-        room_id: b.room_id,
-        is_offsite: false,
-        offsite_location: null,
-        group_id: null,
-        is_all_day: false,
-        blocks_availability: false,
-        series_id: null,
-        recurrence: "none",
-        recurrence_until: null,
-        booking: {
-          id: b.id,
-          status: b.status,
-          guest_name: b.guest_name,
-          guest_email: b.guest_email,
-          guest_phone: b.guest_phone,
-          service_title: b.services?.title ?? null,
-          total_price: b.total_price,
-        },
-      }));
+      .map((b) => {
+        // "Visit at your location" bookings pick no room and no time slot
+        // (booking_time stays 00:00). They can't sit on the hour timeline, so
+        // show them as an all-day banner on their date, flagged as at-location.
+        const isLocationVisit = !b.room_id && String(b.booking_time ?? "").startsWith("00:00");
+        return {
+          id: `booking:${b.id}`,
+          calendar_type: "treatment",
+          // A custom title (set in the booking edit modal) wins; otherwise fall
+          // back to the auto "Guest — Service" label.
+          title: (b.title && String(b.title).trim())
+            ? String(b.title).trim()
+            : `${b.guest_name ?? "Guest"} — ${b.services?.title ?? "Treatment"}`,
+          entry_date: b.booking_date,
+          end_date: null,
+          start_time: String(b.booking_time ?? "09:00").slice(0, 5),
+          end_time: null,
+          duration_minutes: b.services?.duration_minutes ?? 60,
+          notes: null,
+          color: bookingColor(b.status),
+          room_id: b.room_id,
+          is_offsite: isLocationVisit,
+          offsite_location: isLocationVisit ? "At client location" : null,
+          group_id: null,
+          is_all_day: isLocationVisit,
+          blocks_availability: false,
+          series_id: null,
+          recurrence: "none",
+          recurrence_until: null,
+          booking: {
+            id: b.id,
+            status: b.status,
+            guest_name: b.guest_name,
+            guest_email: b.guest_email,
+            guest_phone: b.guest_phone,
+            service_title: b.services?.title ?? null,
+            total_price: b.total_price,
+          },
+        };
+      });
     setBookingEntries(mapped);
   }, [calendarType, currentDate, readOnly]);
   useEffect(() => { loadBookings(); }, [loadBookings]);
