@@ -120,12 +120,17 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
     duration: "",
     offsite_location: "",
     blocks_availability: false,
+    group_id: "",
   });
   const [saving, setSaving] = useState(false);
   const [rooms, setRooms] = useState<{ id: string; name: string; forbidden_categories: string[] }[]>([]);
+  // Internal sub-calendars (groups) — assigning one colors the booking.
+  const [groups, setGroups] = useState<{ id: string; name: string; color: string }[]>([]);
   useEffect(() => {
     supabase.from("rooms").select("id, name, forbidden_categories").eq("is_active", true).order("name")
       .then(({ data }) => setRooms((data as any[])?.map((r) => ({ ...r, forbidden_categories: r.forbidden_categories ?? [] })) ?? []));
+    supabase.from("calendar_groups").select("id, name, color").order("sort_order")
+      .then(({ data }) => setGroups((data as any[]) ?? []));
   }, []);
   // A room can't host some service categories (e.g. Room 1 has no shower, so no
   // body wraps/facials). Match the availability + create-booking rule: compare
@@ -184,6 +189,7 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
         duration: String(booking.duration_minutes || 60),
         offsite_location: booking.offsite_location || "",
         blocks_availability: booking.blocks_availability ?? false,
+        group_id: booking.group_id || "",
       });
     }
   }, [booking]);
@@ -231,6 +237,7 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
         // booking hide all website availability during its time.
         offsite_location: form.room_id ? null : (form.offsite_location.trim() || null),
         blocks_availability: form.blocks_availability,
+        group_id: form.group_id || null,
         start_time,
         end_time,
       })
@@ -289,7 +296,7 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
           <Tabs defaultValue="details" className="w-full">
             <TabsList className="w-full grid grid-cols-2">
               <TabsTrigger value="details" className="text-xs gap-1"><CalendarDays className="h-3 w-3" /> Details</TabsTrigger>
-              <TabsTrigger value="intake" className="text-xs gap-1"><ClipboardList className="h-3 w-3" /> Intake / Notes</TabsTrigger>
+              <TabsTrigger value="intake" className="text-xs gap-1"><ClipboardList className="h-3 w-3" /> Intake form</TabsTrigger>
             </TabsList>
 
             <TabsContent value="details" className="space-y-3 mt-4">
@@ -300,6 +307,15 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
                   onChange={(e) => update("title", e.target.value)}
                   placeholder={booking?.guest_name && booking?.service_title ? `${booking.guest_name} — ${booking.service_title}` : "Custom calendar label"}
                   className="h-9 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Description / Notes <span className="text-muted-foreground">(internal)</span></Label>
+                <Textarea
+                  value={form.notes}
+                  onChange={(e) => update("notes", e.target.value)}
+                  placeholder="Add descriptive text about this booking…"
+                  className="min-h-[64px] text-sm"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -403,6 +419,24 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
                 </span>
               </label>
 
+              <div className="space-y-1.5">
+                <Label className="text-xs">Sub-calendar <span className="text-muted-foreground">(sets the color on the calendar)</span></Label>
+                <Select value={form.group_id || "none"} onValueChange={(v) => update("group_id", v === "none" ? "" : v)}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Color by status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Default (color by status)</SelectItem>
+                    {groups.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
+                          {g.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {card && (
                 <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
                   <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
@@ -433,15 +467,7 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
             </TabsContent>
 
             <TabsContent value="intake" className="space-y-3 mt-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Internal Notes</Label>
-                <Textarea
-                  value={form.notes}
-                  onChange={(e) => update("notes", e.target.value)}
-                  placeholder="Add internal notes about this booking..."
-                  className="min-h-[120px] text-sm"
-                />
-              </div>
+              {/* Editable notes now live on the Details tab (Description / Notes). */}
               {booking.intake_form && (
                 <IntakeView
                   intake={booking.intake_form}
@@ -453,6 +479,9 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
                 <div className="text-xs text-muted-foreground">
                   <span className="font-medium">Payment ID:</span> <code>{booking.payment_id}</code>
                 </div>
+              )}
+              {!booking.intake_form && !booking.payment_id && (
+                <p className="text-xs text-muted-foreground py-2">No intake form on file. (Notes are on the Details tab.)</p>
               )}
             </TabsContent>
           </Tabs>

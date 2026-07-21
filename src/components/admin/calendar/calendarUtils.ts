@@ -24,6 +24,8 @@ export interface CalendarBooking {
   offsite_location: string | null;
   /** When true, this booking hides ALL website availability during its time. */
   blocks_availability: boolean;
+  /** Internal sub-calendar (calendar_groups id) that colors this booking. */
+  group_id: string | null;
 }
 
 export function getStatusColor(status: string): string {

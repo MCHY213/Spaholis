@@ -414,6 +414,7 @@ export type Database = {
           discount_amount: number | null
           end_time: string | null
           guest_email: string | null
+          group_id: string | null
           guest_name: string | null
           guest_phone: string | null
           id: string
@@ -443,6 +444,7 @@ export type Database = {
           discount_amount?: number | null
           end_time?: string | null
           guest_email?: string | null
+          group_id?: string | null
           guest_name?: string | null
           guest_phone?: string | null
           id?: string
@@ -472,6 +474,7 @@ export type Database = {
           discount_amount?: number | null
           end_time?: string | null
           guest_email?: string | null
+          group_id?: string | null
           guest_name?: string | null
           guest_phone?: string | null
           id?: string

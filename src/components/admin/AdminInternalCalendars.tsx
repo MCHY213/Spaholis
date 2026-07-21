@@ -454,11 +454,13 @@ export function AdminInternalCalendars({ restrictToTreatment = false, readOnly =
           end_time: null,
           duration_minutes: b.services?.duration_minutes ?? 60,
           notes: null,
+          // Fallback color = booking status; entryColor() overrides it with the
+          // sub-calendar (group) color when the booking is assigned one.
           color: bookingColor(b.status),
           room_id: b.room_id,
           is_offsite: isLocationVisit,
           offsite_location: isLocationVisit ? "At client location" : null,
-          group_id: null,
+          group_id: b.group_id ?? null,
           is_all_day: isLocationVisit,
           blocks_availability: false,
           series_id: null,
@@ -543,6 +545,7 @@ export function AdminInternalCalendars({ restrictToTreatment = false, readOnly =
       intake_form: b.intake_form, card_authorization: b.card_authorization,
       staff_id: b.staff_id, room_id: b.room_id, payment_id: b.payment_id,
       offsite_location: b.offsite_location ?? null, blocks_availability: b.blocks_availability ?? false,
+      group_id: b.group_id ?? null,
     });
     setBookingEditOpen(true);
   };
