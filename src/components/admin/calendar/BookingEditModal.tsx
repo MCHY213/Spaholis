@@ -17,6 +17,22 @@ import { spaLocalToInstant } from "@/lib/businessHours";
 
 type CardOnFile = { card_brand: string | null; card_last4: string | null; card_expiry: string | null; cardholder_name: string | null };
 
+/** "HH:MM" + minutes → "HH:MM" (same day, clamped). */
+function addMinutesHHMM(hhmm: string, mins: number): string {
+  const [h, m] = (hhmm || "09:00").split(":").map(Number);
+  const total = (h || 0) * 60 + (m || 0) + (mins || 0);
+  const hh = Math.floor(total / 60) % 24;
+  const mm = ((total % 60) + 60) % 60;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+/** Minutes between two "HH:MM" (same day). */
+function minutesBetween(startHHMM: string, endHHMM: string): number {
+  const [sh, sm] = (startHHMM || "0:0").split(":").map(Number);
+  const [eh, em] = (endHHMM || "0:0").split(":").map(Number);
+  return (eh * 60 + em) - (sh * 60 + sm);
+}
+
 // ---- Readable intake-form rendering (named body areas, not raw ids) ----
 const INTAKE_MEANINGLESS = new Set(["", "none", "nothing", "n/a", "na"]);
 const isMeaningful = (v: unknown) =>
@@ -117,7 +133,7 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
     notes: "",
     total_price: "",
     room_id: "",
-    duration: "",
+    end_time: "",
     offsite_location: "",
     blocks_availability: false,
     group_id: "",
@@ -186,7 +202,8 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
         notes: booking.notes || "",
         total_price: booking.total_price?.toString() || "",
         room_id: booking.room_id || "",
-        duration: String(booking.duration_minutes || 60),
+        // Shown as an end-time picker; derived from start + the service length.
+        end_time: addMinutesHHMM(booking.booking_time?.slice(0, 5) || "09:00", booking.duration_minutes || 60),
         offsite_location: booking.offsite_location || "",
         blocks_availability: booking.blocks_availability ?? false,
         group_id: booking.group_id || "",
@@ -205,19 +222,22 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
       toast.error(`${chosenRoom.name} can't host this service. Please pick another room.`);
       return;
     }
+    if (form.booking_time && form.end_time && minutesBetween(form.booking_time, form.end_time) <= 0) {
+      toast.error("End time must be after the start time.");
+      return;
+    }
     setSaving(true);
     const selectedService = services.find((s) => s.id === form.service_id);
-    // Keep the timestamptz slot in sync with the edited date/time/duration, so
+    // Keep the timestamptz slot in sync with the edited start/end times, so
     // website availability and the calendar reflect a reschedule correctly.
     let start_time: string | null = null;
     let end_time: string | null = null;
-    const dur = parseInt(form.duration) || booking.duration_minutes || 60;
-    if (form.booking_date && form.booking_time) {
+    if (form.booking_date && form.booking_time && form.end_time) {
       const [y, m, d] = form.booking_date.split("-").map(Number);
-      const [hh, mm] = form.booking_time.split(":").map(Number);
-      const start = spaLocalToInstant(y, m - 1, d, hh, mm);
-      start_time = start.toISOString();
-      end_time = new Date(start.getTime() + dur * 60000).toISOString();
+      const [sh, sm] = form.booking_time.split(":").map(Number);
+      const [eh, em] = form.end_time.split(":").map(Number);
+      start_time = spaLocalToInstant(y, m - 1, d, sh, sm).toISOString();
+      end_time = spaLocalToInstant(y, m - 1, d, eh, em).toISOString();
     }
     const { error } = await supabase
       .from("bookings")
@@ -351,8 +371,20 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
                   <Input type="date" value={form.booking_date} onChange={(e) => update("booking_date", e.target.value)} className="h-9 text-sm" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Time</Label>
-                  <Input type="time" value={form.booking_time} onChange={(e) => update("booking_time", e.target.value)} className="h-9 text-sm" />
+                  <Label className="text-xs">Start time</Label>
+                  <Input
+                    type="time"
+                    value={form.booking_time}
+                    onChange={(e) => {
+                      const newStart = e.target.value;
+                      // Drag the end along so the appointment keeps its length.
+                      setForm((f) => {
+                        const dur = minutesBetween(f.booking_time, f.end_time);
+                        return { ...f, booking_time: newStart, end_time: dur > 0 ? addMinutesHHMM(newStart, dur) : f.end_time };
+                      });
+                    }}
+                    className="h-9 text-sm"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -394,8 +426,13 @@ export function BookingEditModal({ booking, open, onOpenChange, onSaved, service
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Duration (min)</Label>
-                  <Input type="number" min={15} step={15} value={form.duration} onChange={(e) => update("duration", e.target.value)} className="h-9 text-sm" />
+                  <Label className="text-xs">End time</Label>
+                  <Input type="time" value={form.end_time} onChange={(e) => update("end_time", e.target.value)} className="h-9 text-sm" />
+                  {form.booking_time && form.end_time && (
+                    minutesBetween(form.booking_time, form.end_time) > 0
+                      ? <p className="text-[11px] text-muted-foreground">{minutesBetween(form.booking_time, form.end_time)} min</p>
+                      : <p className="text-[11px] text-destructive">End must be after start</p>
+                  )}
                 </div>
               </div>
 
