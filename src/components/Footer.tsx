@@ -4,6 +4,7 @@ import { useSiteContent } from "@/hooks/useSiteContent";
 import { content as defaults } from "@/data/content";
 import { RichText } from "@/components/ui/rich-text";
 import { HOLIS_WHATSAPP_URL, formatWhatsAppDisplay } from "@/lib/whatsapp";
+import { InstallAppButton } from "@/components/InstallAppButton";
 
 export function Footer() {
   const { data: content } = useSiteContent();
@@ -18,6 +19,9 @@ export function Footer() {
             <p className="font-body text-sm text-spa-sand/90 max-w-sm leading-relaxed">
               <RichText value={footer.description} path="footer.description" />
             </p>
+            <div className="mt-5">
+              <InstallAppButton className="border-spa-sand/40 text-spa-sand hover:bg-spa-sand/10 hover:text-spa-cream" />
+            </div>
           </div>
           <div>
             <h4 className="font-body text-sm font-semibold uppercase tracking-wider mb-4 text-spa-sand">{footer.quickLinksTitle || "Quick Links"}</h4>
