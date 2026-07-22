@@ -1456,6 +1456,31 @@ const BookingPage = () => {
                     </div>
                   </div>
                 )}
+                {selectedExtras.map((id) => {
+                  const a = addonServices?.find((x) => x.id === id);
+                  if (!a) return null;
+                  return (
+                    <div key={id} className="flex items-start gap-3 text-sm font-body">
+                      <Check className="h-4 w-4 text-spa-sage mt-0.5" />
+                      <div>
+                        <p className="font-medium text-foreground">{a.title}</p>
+                        <p className="text-muted-foreground">+{a.duration_minutes} min · {formatCRC(Number(a.price ?? 0))}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+                {addons.map((ad) => {
+                  const s = services?.find((x) => x.id === ad.serviceId);
+                  return (
+                    <div key={ad.localId} className="flex items-start gap-3 text-sm font-body">
+                      <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="font-medium text-foreground">{s?.title ?? "Treatment"}</p>
+                        <p className="text-muted-foreground">{ad.slot?.label ?? ""} · {ad.forSamePerson ? "For you" : `For ${ad.recipientName}`} · {formatCRC(Number(s?.price ?? 0))}</p>
+                      </div>
+                    </div>
+                  );
+                })}
                 {intakeStepIdx >= 0 && step > intakeStepIdx && (
                   <div className="flex items-start gap-3 text-sm font-body">
                     <ClipboardList className="h-4 w-4 text-spa-sage mt-0.5" />
@@ -1495,7 +1520,7 @@ const BookingPage = () => {
               {currentService && (
                 <div className="border-t border-border pt-4 flex justify-between font-body">
                   <span className="text-sm font-semibold text-foreground">{t("booking.total")}</span>
-                  <span className="text-sm font-semibold text-foreground">{formatCRC(currentService.price)}</span>
+                  <span className="text-sm font-semibold text-foreground">{formatCRC(grandTotal)}</span>
                 </div>
               )}
               {needsPayment && (
