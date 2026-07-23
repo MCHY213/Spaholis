@@ -1858,24 +1858,29 @@ export function AdminInternalCalendars({ restrictToTreatment = false, readOnly =
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2 pt-2">
+            {/* Save/Update + Cancel come FIRST and sit full-width on a phone so
+                they're always reachable; Delete/Duplicate wrap below. On desktop
+                the row flips back to the usual left-aligned Delete/Duplicate with
+                Cancel/Save pushed to the right. */}
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-2 pt-2">
               {editingEntry && (
                 <>
                   <Button
                     variant="destructive"
+                    className="flex-1 sm:flex-none"
                     disabled={saving}
                     title="Move to the 30-day trash"
                     onClick={async () => { const e = editingEntry; closeEntryModal(); await handleDelete(e); }}
                   >
                     <Trash2 className="h-4 w-4 mr-1.5" /> Delete
                   </Button>
-                  <Button variant="ghost" onClick={duplicateEntry} disabled={saving} title="Copy this entry into a new one">
+                  <Button variant="ghost" className="flex-1 sm:flex-none" onClick={duplicateEntry} disabled={saving} title="Copy this entry into a new one">
                     <Copy className="h-4 w-4 mr-1.5" /> Duplicate
                   </Button>
                 </>
               )}
-              <Button variant="outline" className="ml-auto" onClick={closeEntryModal}>Cancel</Button>
-              <Button onClick={handleSave} disabled={saving}>{saving ? "Saving..." : editingEntry ? "Update" : "Create"}</Button>
+              <Button variant="outline" className="flex-1 sm:flex-none sm:ml-auto" onClick={closeEntryModal}>Cancel</Button>
+              <Button className="flex-1 sm:flex-none" onClick={handleSave} disabled={saving}>{saving ? "Saving..." : editingEntry ? "Update" : "Create"}</Button>
             </div>
           </div>
         </DialogContent>
