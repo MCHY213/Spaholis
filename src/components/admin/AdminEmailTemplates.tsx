@@ -11,6 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Mail, Pencil, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { RichTextEditor } from "./RichTextEditor";
+import { cn } from "@/lib/utils";
+import type { Editor } from "@tiptap/react";
 
 // Mirror of the row in public.email_templates. The generated Supabase types do
 // not yet include this table, so we type it locally and cast `from(...)`.
@@ -138,6 +141,9 @@ export function AdminEmailTemplates() {
   });
   const [saving, setSaving] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  // Visual (rich text) editing by default; HTML mode stays for advanced tweaks.
+  const [bodyMode, setBodyMode] = useState<"visual" | "html">("visual");
+  const editorRef = useRef<Editor | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -159,11 +165,17 @@ export function AdminEmailTemplates() {
 
   const openEdit = (t: EmailTemplate) => {
     setEditing(t);
+    setBodyMode("visual");
     setForm({ subject: t.subject, heading: t.heading, body_html: t.body_html, enabled: t.enabled });
   };
 
   const insertVar = (v: string) => {
     const token = `{{${v}}}`;
+    // Visual mode: drop the token at the caret inside the rich-text editor.
+    if (bodyMode === "visual" && editorRef.current) {
+      editorRef.current.chain().focus().insertContent(token).run();
+      return;
+    }
     const el = bodyRef.current;
     if (!el) { setForm((f) => ({ ...f, body_html: f.body_html + token })); return; }
     const start = el.selectionStart ?? el.value.length;
@@ -285,13 +297,39 @@ export function AdminEmailTemplates() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="font-body">Body</Label>
-                  <Textarea
-                    ref={bodyRef}
-                    value={form.body_html}
-                    onChange={(e) => setForm((f) => ({ ...f, body_html: e.target.value }))}
-                    className="font-mono text-xs min-h-[220px]"
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label className="font-body">Body</Label>
+                    <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+                      {(["visual", "html"] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setBodyMode(m)}
+                          className={cn(
+                            "px-2.5 py-1 rounded text-xs font-body font-medium transition-colors",
+                            bodyMode === m ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted",
+                          )}
+                        >
+                          {m === "visual" ? "Visual" : "HTML"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {bodyMode === "visual" ? (
+                    <RichTextEditor
+                      value={form.body_html}
+                      onChange={(html) => setForm((f) => ({ ...f, body_html: html }))}
+                      onEditorReady={(ed) => { editorRef.current = ed; }}
+                      placeholder="Write the email text…"
+                    />
+                  ) : (
+                    <Textarea
+                      ref={bodyRef}
+                      value={form.body_html}
+                      onChange={(e) => setForm((f) => ({ ...f, body_html: e.target.value }))}
+                      className="font-mono text-xs min-h-[220px]"
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-1.5">

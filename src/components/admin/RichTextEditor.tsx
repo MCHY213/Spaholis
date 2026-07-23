@@ -1,4 +1,4 @@
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
@@ -12,9 +12,12 @@ interface Props {
   onChange: (html: string) => void;
   placeholder?: string;
   onImageRequest?: () => Promise<string | null>;
+  /** Exposes the underlying editor so callers can insert content at the caret
+   *  (e.g. template {{variable}} chips). */
+  onEditorReady?: (editor: Editor) => void;
 }
 
-export function RichTextEditor({ value, onChange, placeholder, onImageRequest }: Props) {
+export function RichTextEditor({ value, onChange, placeholder, onImageRequest, onEditorReady }: Props) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -37,6 +40,11 @@ export function RichTextEditor({ value, onChange, placeholder, onImageRequest }:
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
+
+  useEffect(() => {
+    if (editor && onEditorReady) onEditorReady(editor);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor]);
 
   if (!editor) return null;
 
