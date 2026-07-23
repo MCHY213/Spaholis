@@ -329,7 +329,7 @@ const BookingPage = () => {
     const extrasLabel = selectedExtras
       .map((id) => addonServices?.find((a) => a.id === id))
       .filter(Boolean)
-      .map((a) => `${a!.title} (+${a!.duration_minutes}min, ${formatCRC(Number(a!.price ?? 0))})`)
+      .map((a) => `${a!.title} (${a!.duration_minutes > 0 ? `+${a!.duration_minutes}min, ` : ""}${formatCRC(Number(a!.price ?? 0))})`)
       .join(", ");
     const notesBase = locationVisit
       ? `[AT CLIENT LOCATION: ${formData.address}] ${formData.notes}`.trim()
@@ -977,7 +977,7 @@ const BookingPage = () => {
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="min-w-0">
                                     <p className="font-body text-sm font-medium text-foreground">{a.title}</p>
-                                    <p className="font-body text-xs text-muted-foreground">+{a.duration_minutes} min · {formatCRC(Number(a.price ?? 0))} per person</p>
+                                    <p className="font-body text-xs text-muted-foreground">{a.duration_minutes > 0 ? `+${a.duration_minutes} min · ` : "Same session time · "}{formatCRC(Number(a.price ?? 0))} per person</p>
                                   </div>
                                   <span className={cn("h-5 w-5 rounded-md border flex items-center justify-center shrink-0", on ? "bg-spa-sage border-spa-sage text-white" : "border-border")}>
                                     {on && <Check className="h-3.5 w-3.5" />}
@@ -1195,7 +1195,7 @@ const BookingPage = () => {
                             {selectedExtras.map((id) => {
                               const a = addonServices?.find((x) => x.id === id);
                               if (!a) return null;
-                              return <p key={id} className="font-body text-sm text-foreground">{a.title} <span className="text-muted-foreground">(+{a.duration_minutes} min · {formatCRC(Number(a.price ?? 0))})</span></p>;
+                              return <p key={id} className="font-body text-sm text-foreground">{a.title} <span className="text-muted-foreground">({a.duration_minutes > 0 ? `+${a.duration_minutes} min · ` : ""}{formatCRC(Number(a.price ?? 0))})</span></p>;
                             })}
                           </div>
                           <button type="button" className="font-body text-xs text-spa-sage underline hover:text-foreground shrink-0" onClick={() => setStep(dateStepIdx)}>{t("booking.summary.edit")}</button>
@@ -1464,7 +1464,7 @@ const BookingPage = () => {
                       <Check className="h-4 w-4 text-spa-sage mt-0.5" />
                       <div>
                         <p className="font-medium text-foreground">{a.title}</p>
-                        <p className="text-muted-foreground">+{a.duration_minutes} min · {formatCRC(Number(a.price ?? 0))}</p>
+                        <p className="text-muted-foreground">{a.duration_minutes > 0 ? `+${a.duration_minutes} min · ` : ""}{formatCRC(Number(a.price ?? 0))}</p>
                       </div>
                     </div>
                   );
