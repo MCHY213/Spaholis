@@ -1,0 +1,5 @@
+-- 30-day trash for manual calendar entries, mirroring the bookings trash.
+-- deleted_entries table + soft_delete_entry(_id, _whole_series) +
+-- restore_entry(_id), staff-gated (super_admin/manager/coordinator), with
+-- opportunistic 30-day purge. Applied live 2026-07-23; full SQL in the
+-- Supabase migration history (calendar_entries_trash_30_days).

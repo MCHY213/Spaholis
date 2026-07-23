@@ -723,26 +723,16 @@ export function AdminInternalCalendars({ restrictToTreatment = false, readOnly =
 
   const handleDelete = async (entry: CalendarEntry) => {
     if (readOnly) return;
-    let query = supabase.from("admin_calendar_entries").delete();
-    let message = "Entry deleted";
-
+    // Soft delete into the 30-day trash (restorable from the Trash tab).
+    let wholeSeries = false;
     if (entry.series_id) {
-      const wholeSeries = confirm(
-        `"${entry.title}" repeats.\n\nOK = delete EVERY occurrence in the series.\nCancel = delete only this one.`,
+      wholeSeries = confirm(
+        `"${entry.title}" repeats.\n\nOK = move EVERY occurrence to the trash.\nCancel = move only this one.`,
       );
-      if (wholeSeries) {
-        query = query.eq("series_id", entry.series_id);
-        message = "Series deleted";
-      } else {
-        query = query.eq("id", entry.id);
-      }
-    } else {
-      query = query.eq("id", entry.id);
     }
-
-    const { error } = await query;
+    const { error } = await supabase.rpc("soft_delete_entry" as any, { _id: entry.id, _whole_series: wholeSeries });
     if (error) { toast.error(error.message); return; }
-    toast.success(message);
+    toast.success(wholeSeries ? "Series moved to trash — restorable for 30 days" : "Moved to trash — restorable for 30 days");
     loadEntries();
   };
 

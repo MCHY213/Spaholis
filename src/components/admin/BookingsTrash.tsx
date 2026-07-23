@@ -11,8 +11,15 @@ interface TrashRow {
   deleted_at: string;
 }
 
+interface EntryTrashRow {
+  id: string;
+  entry: any;
+  deleted_at: string;
+}
+
 export function BookingsTrash() {
   const [rows, setRows] = useState<TrashRow[]>([]);
+  const [entryRows, setEntryRows] = useState<EntryTrashRow[]>([]);
   const [services, setServices] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [restoring, setRestoring] = useState<string | null>(null);
@@ -21,12 +28,14 @@ export function BookingsTrash() {
     setLoading(true);
     // Drop anything past 30 days, then read what's left.
     await supabase.rpc("purge_deleted_bookings" as any).then(() => {}, () => {});
-    const [{ data: trash }, { data: svc }] = await Promise.all([
+    const [{ data: trash }, { data: entryTrash }, { data: svc }] = await Promise.all([
       supabase.from("deleted_bookings" as any).select("id, booking, deleted_at").order("deleted_at", { ascending: false }),
+      supabase.from("deleted_entries" as any).select("id, entry, deleted_at").order("deleted_at", { ascending: false }),
       supabase.from("services").select("id, title"),
     ]);
     setServices(Object.fromEntries(((svc as any[]) ?? []).map((s) => [s.id, s.title])));
     setRows(((trash as any[]) ?? []) as TrashRow[]);
+    setEntryRows(((entryTrash as any[]) ?? []) as EntryTrashRow[]);
     setLoading(false);
   }, []);
 
@@ -38,6 +47,15 @@ export function BookingsTrash() {
     setRestoring(null);
     if (error) { toast.error(error.message || "Could not restore"); return; }
     toast.success("Booking restored");
+    load();
+  };
+
+  const restoreEntry = async (id: string) => {
+    setRestoring(id);
+    const { error } = await supabase.rpc("restore_entry" as any, { _id: id });
+    setRestoring(null);
+    if (error) { toast.error(error.message || "Could not restore"); return; }
+    toast.success("Entry restored");
     load();
   };
 
@@ -57,11 +75,13 @@ export function BookingsTrash() {
 
       {loading ? (
         <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
-      ) : rows.length === 0 ? (
+      ) : rows.length === 0 && entryRows.length === 0 ? (
         <div className="bg-card rounded-2xl border border-border p-8 text-center text-muted-foreground">
           <p className="text-sm">Trash is empty.</p>
         </div>
       ) : (
+        <>
+        {rows.length > 0 && (
         <div className="bg-card rounded-2xl border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -96,6 +116,46 @@ export function BookingsTrash() {
             </table>
           </div>
         </div>
+        )}
+
+        {entryRows.length > 0 && (
+          <div className="bg-card rounded-2xl border border-border overflow-hidden">
+            <p className="px-5 pt-4 pb-1 font-heading text-sm font-semibold text-foreground">Calendar entries</p>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    {["Title", "Date", "Time", "Deleted", "Expires in", ""].map((h) => (
+                      <th key={h} className="text-left px-5 py-3 font-body text-xs font-semibold uppercase tracking-wider text-muted-foreground">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {entryRows.map((r) => {
+                    const e = r.entry || {};
+                    return (
+                      <tr key={r.id} className="hover:bg-muted/30">
+                        <td className="px-5 py-4 font-body text-sm font-medium text-foreground">{e.title || "—"}</td>
+                        <td className="px-5 py-4 font-body text-sm text-muted-foreground">{e.entry_date}</td>
+                        <td className="px-5 py-4 font-body text-sm text-muted-foreground">{e.is_all_day ? "All day" : String(e.start_time || "").slice(0, 5)}</td>
+                        <td className="px-5 py-4 font-body text-xs text-muted-foreground">{format(new Date(r.deleted_at), "MMM d, h:mm a")}</td>
+                        <td className="px-5 py-4 font-body text-xs">
+                          <span className={daysLeft(r.deleted_at) <= 3 ? "text-destructive font-semibold" : "text-muted-foreground"}>{daysLeft(r.deleted_at)} days</span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <Button variant="outline" size="sm" className="gap-1.5 h-8" disabled={restoring === r.id} onClick={() => restoreEntry(r.id)}>
+                            {restoring === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Restore
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        </>
       )}
     </div>
   );
