@@ -1105,11 +1105,14 @@ export function AdminInternalCalendars({ restrictToTreatment = false, readOnly =
               </div>
             </div>
 
-            {/* List view below calendar */}
-            <div className="mt-6 space-y-2">
-              <h4 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            {/* List view below calendar — collapsed by default so it doesn't
+                clutter the calendar; click to expand the full month list. */}
+            <details className="mt-6 group">
+              <summary className="flex items-center gap-2 cursor-pointer list-none select-none py-2 font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide hover:text-foreground">
+                <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
                 Entries this month ({visibleEntries.length})
-              </h4>
+              </summary>
+              <div className="space-y-2 pt-2">
               {visibleEntries.length === 0 && (
                 <p className="text-sm text-muted-foreground py-4 text-center">No entries for this month. Click a day or "Add Entry" to create one.</p>
               )}
@@ -1154,7 +1157,8 @@ export function AdminInternalCalendars({ restrictToTreatment = false, readOnly =
                   </div>
                 </Card>
               ))}
-            </div>
+              </div>
+            </details>
               </>
             )}
           </TabsContent>
