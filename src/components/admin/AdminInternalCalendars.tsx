@@ -12,6 +12,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths,
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AdminClassCalendarWithAttendees } from "./AdminClassCalendarWithAttendees";
+import { BookingsTrash } from "./BookingsTrash";
 import { CalendarGroupsBar, type CalendarGroup } from "./CalendarGroupsBar";
 import { readableOn, PALETTE } from "./AttendeeLabelPicker";
 import { BookingEditModal } from "./calendar/BookingEditModal";
@@ -278,8 +279,13 @@ export function AdminInternalCalendars({ restrictToTreatment = false, readOnly =
   );
   const [currentDate, setCurrentDate] = useState(new Date());
   // Google-Calendar-style view switch: the month grid, or a chronological
-  // agenda list of the month's entries.
-  const [viewMode, setViewMode] = useState<"month" | "agenda">("month");
+  // agenda list of the month's entries. Phones default to Agenda (the grid is
+  // cramped there), desktops to Month.
+  const [viewMode, setViewMode] = useState<"month" | "agenda">(() =>
+    typeof window !== "undefined" && window.innerWidth < 768 ? "agenda" : "month",
+  );
+  // In-calendar access to the 30-day trash (bookings + entries).
+  const [trashOpen, setTrashOpen] = useState(false);
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<CalendarEntry | null>(null);
@@ -753,11 +759,26 @@ export function AdminInternalCalendars({ restrictToTreatment = false, readOnly =
           </p>
         </div>
         {!readOnly && (
-          <Button size="sm" onClick={() => openNew()}>
-            <Plus className="h-4 w-4 mr-1" /> Add Entry
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setTrashOpen(true)} title="Deleted bookings & entries (30-day trash)">
+              <Trash2 className="h-4 w-4 mr-1" /> Trash
+            </Button>
+            <Button size="sm" onClick={() => openNew()}>
+              <Plus className="h-4 w-4 mr-1" /> Add Entry
+            </Button>
+          </div>
         )}
       </div>
+
+      {/* 30-day trash, right inside the calendar (also lives in the sidebar tab). */}
+      <Dialog open={trashOpen} onOpenChange={setTrashOpen}>
+        <DialogContent className="max-w-4xl w-[96vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Trash</DialogTitle>
+          </DialogHeader>
+          <BookingsTrash />
+        </DialogContent>
+      </Dialog>
 
       <Tabs value={calendarType} onValueChange={(v) => setCalendarType(v as CalendarType)}>
         {/* One calendar type = no tab strip needed (coordinator view). */}
@@ -1538,9 +1559,19 @@ export function AdminInternalCalendars({ restrictToTreatment = false, readOnly =
             </div>
             <div className="flex items-center gap-2 pt-2">
               {editingEntry && (
-                <Button variant="ghost" onClick={duplicateEntry} disabled={saving} title="Copy this entry into a new one">
-                  <Copy className="h-4 w-4 mr-1.5" /> Duplicate
-                </Button>
+                <>
+                  <Button
+                    variant="destructive"
+                    disabled={saving}
+                    title="Move to the 30-day trash"
+                    onClick={async () => { const e = editingEntry; closeEntryModal(); await handleDelete(e); }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1.5" /> Delete
+                  </Button>
+                  <Button variant="ghost" onClick={duplicateEntry} disabled={saving} title="Copy this entry into a new one">
+                    <Copy className="h-4 w-4 mr-1.5" /> Duplicate
+                  </Button>
+                </>
               )}
               <Button variant="outline" className="ml-auto" onClick={closeEntryModal}>Cancel</Button>
               <Button onClick={handleSave} disabled={saving}>{saving ? "Saving..." : editingEntry ? "Update" : "Create"}</Button>
